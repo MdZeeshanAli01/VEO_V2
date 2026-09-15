@@ -5,7 +5,7 @@ from veo_nyu.data import discover_pairs, load_depth, validate_pairs
 from veo_nyu.features import extract_features
 from veo_nyu.inference import PrecomputedPredictor
 from veo_nyu.metrics import align_scale_shift, compute_metrics
-from veo_nyu.nyu_dataset import extract_labeled_mat
+from veo_nyu.nyu_dataset import create_scene_splits, extract_labeled_mat
 from veo_nyu.regions import extract_failure_regions
 from veo_nyu.reports import write_summary
 from veo_nyu.scoring import classify
@@ -101,6 +101,23 @@ def test_extract_official_nyu_mat_layout(tmp_path):
     assert extracted == 1
     assert Image.open(tmp_path / "rgb" / "scene_0001.png").size == (4, 3)
     assert np.allclose(np.load(tmp_path / "depth" / "scene_0001.npy"), 2.0)
+
+
+def test_scene_splits_are_disjoint(tmp_path):
+    mat_path = tmp_path / "nyu.mat"
+    import h5py
+
+    with h5py.File(mat_path, "w") as handle:
+        refs = handle.create_group("#refs#")
+        scene_refs = []
+        for index, name in enumerate(["a", "a", "b", "b", "c", "c"]):
+            key = f"{index:04d}"
+            refs.create_dataset(key, data=np.frombuffer(name.encode("utf-16le"), dtype=np.uint16))
+            scene_refs.append(refs[key].ref)
+        handle.create_dataset("scenes", data=np.asarray(scene_refs, dtype=h5py.ref_dtype).reshape(1, -1))
+    splits = create_scene_splits(mat_path, seed=42, train_fraction=0.5, validation_fraction=0.25)
+    scene_sets = [{record["scene"] for record in records} for records in splits.values()]
+    assert not (scene_sets[0] & scene_sets[1] or scene_sets[0] & scene_sets[2] or scene_sets[1] & scene_sets[2])
 
 
 def test_features_handle_one_pixel_wide_region():

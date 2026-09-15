@@ -1,11 +1,12 @@
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
 
 from .config import Config, DatasetConfig, ExperimentConfig, OutputConfig, load_config
 from .data import discover_manifest, discover_pairs, validate_pairs
-from .nyu_dataset import extract_labeled_mat
+from .nyu_dataset import create_scene_splits, extract_labeled_mat, extract_split
 from .pipeline import analyze_sample
 from .reports import write_manifest
 from .runner import run_model, run_official_metric, run_precomputed
@@ -39,7 +40,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo-nyu")
-    parser.add_argument("command", choices=["smoke", "manifest", "extract-nyu", "run-precomputed", "run-model", "run-official-metric"])
+    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "run-precomputed", "run-model", "run-official-metric"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -55,6 +56,7 @@ def main() -> None:
     parser.add_argument("--mat-path", type=Path, default=Path("data/nyu/nyu_depth_v2_labeled.mat"))
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--count", type=int)
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
@@ -69,6 +71,18 @@ def main() -> None:
     elif args.command == "extract-nyu":
         extracted = extract_labeled_mat(args.mat_path, args.rgb_dir or Path("data/nyu/rgb"), args.depth_dir or Path("data/nyu/depth"), args.start, args.count)
         print(f"Extracted {extracted} official NYU RGB/depth pairs")
+    elif args.command == "prepare-nyu-splits":
+        split_root = args.output_dir or Path("data/nyu/splits")
+        splits = create_scene_splits(args.mat_path, args.seed)
+        scene_sets = {}
+        for split, records in splits.items():
+            scene_sets[split] = sorted({record["scene"] for record in records})
+            split_dir = split_root / split
+            extract_split(args.mat_path, records, split_dir)
+            (split_dir / "metadata.json").write_text(json.dumps(records, indent=2), encoding="utf-8")
+            (split_dir / "manifest.txt").write_text("\n".join(f"{split_dir / 'rgb' / record['sample_id']}.png {split_dir / 'depth' / record['sample_id']}.npy" for record in records) + "\n", encoding="utf-8")
+        (split_root / "split_summary.json").write_text(json.dumps({"seed": args.seed, "scene_sets": scene_sets}, indent=2), encoding="utf-8")
+        print({split: len(records) for split, records in splits.items()})
     elif args.command == "run-precomputed":
         config = load_config(args.config)
         config = configured(args, config)

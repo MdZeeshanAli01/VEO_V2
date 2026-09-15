@@ -95,6 +95,16 @@ uv run veo-nyu extract-nyu --mat-path data/nyu/nyu_depth_v2_labeled.mat --start 
 
 This writes RGB PNGs to `data/nyu/rgb/` and exact depth arrays in metres to `data/nyu/depth/`. No synthetic data is generated.
 
+Prepare deterministic scene-level development, validation, and test partitions with:
+
+```powershell
+uv run veo-nyu prepare-nyu-splits `
+	--mat-path data/nyu/nyu_depth_v2_labeled.mat `
+	--output-dir data/nyu/splits
+```
+
+This creates 70/15/15 scene-level partitions using seed `42`, extracts the original RGB/depth pairs, and writes `manifest.txt`, `metadata.json`, and `split_summary.json`. No scene appears in more than one partition.
+
 Run the model on the extracted original NYU samples with:
 
 ```powershell
@@ -136,4 +146,4 @@ The official Hypersim depth files are HDF5 distance maps. VEO applies the same o
 
 ## Current status
 
-Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. The implementation validates the data contract, masked metrics, region extraction, evidence scoring, manifests, visual panels, aggregate summaries, and correlation exports. Human labels, held-out scene evaluation, intervention tests, and diagnosis-guided improvement remain open phases.
+Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Human labels, held-out model evaluation, intervention tests, and diagnosis-guided improvement remain open phases.
