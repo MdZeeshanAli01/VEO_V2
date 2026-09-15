@@ -40,7 +40,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo-nyu")
-    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "run-precomputed", "run-model", "run-official-metric"])
+    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "run-precomputed", "run-model", "run-official-metric"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -57,6 +57,8 @@ def main() -> None:
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--count", type=int)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--split-root", type=Path, default=Path("data/nyu/splits"))
+    parser.add_argument("--limit", type=int)
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
@@ -91,8 +93,27 @@ def main() -> None:
     elif args.command == "run-model":
         config = load_config(args.config)
         config = configured(args, config)
-        records = run_model(config, args.model_id, args.device)
+        records = run_model(config, args.model_id, args.device, args.limit)
         print(f"Processed {len(records)} NYU samples. Results: {args.output_dir / 'model_results.json'}")
+    elif args.command == "evaluate-splits":
+        base_config = load_config(args.config)
+        split_root = args.split_root
+        for split in ("development", "validation", "test"):
+            split_config = Config(
+                dataset=DatasetConfig(
+                    name=base_config.dataset.name,
+                    rgb_dir=split_root / split / "rgb",
+                    depth_dir=split_root / split / "depth",
+                    manifest=split_root / split / "manifest.txt",
+                    depth_scale=base_config.dataset.depth_scale,
+                    max_depth_m=base_config.dataset.max_depth_m,
+                    split=split,
+                ),
+                experiment=base_config.experiment,
+                outputs=OutputConfig(directory=(args.output_dir or Path("outputs/nyu_evaluation")) / split),
+            )
+            records = run_model(split_config, args.model_id, args.device, args.limit)
+            print(f"{split}: processed {len(records)} samples")
     elif args.command == "run-official-metric":
         config = load_config(args.config)
         config = configured(args, config, args.max_depth)

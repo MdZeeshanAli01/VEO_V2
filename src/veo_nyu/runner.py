@@ -54,8 +54,10 @@ def run_precomputed(config: Config, prediction_dir: Path) -> list[dict]:
     return records
 
 
-def run_model(config: Config, model_id: str, device: str = "auto") -> list[dict]:
+def run_model(config: Config, model_id: str, device: str = "auto", limit: int | None = None) -> list[dict]:
     pairs = _pairs(config)
+    if limit is not None:
+        pairs = pairs[:limit]
     predictor = TransformersDepthPredictor(model_id, device)
     output_dir = config.outputs.directory
     prediction_dir = output_dir / "predictions"

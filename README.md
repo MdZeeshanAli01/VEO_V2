@@ -105,6 +105,18 @@ uv run veo-nyu prepare-nyu-splits `
 
 This creates 70/15/15 scene-level partitions using seed `42`, extracts the original RGB/depth pairs, and writes `manifest.txt`, `metadata.json`, and `split_summary.json`. No scene appears in more than one partition.
 
+Evaluate the same frozen model/configuration separately on all three partitions with:
+
+```powershell
+uv run veo-nyu evaluate-splits `
+	--config configs/nyu.yaml `
+	--split-root data/nyu/splits `
+	--output-dir outputs/nyu_evaluation `
+	--device cpu
+```
+
+For a CPU smoke run, add `--limit 3`. The full command writes independent results under `outputs/nyu_evaluation/development`, `validation`, and `test`; no test results are used to tune thresholds.
+
 Run the model on the extracted original NYU samples with:
 
 ```powershell
@@ -146,4 +158,4 @@ The official Hypersim depth files are HDF5 distance maps. VEO applies the same o
 
 ## Current status
 
-Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Human labels, held-out model evaluation, intervention tests, and diagnosis-guided improvement remain open phases.
+Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Phase 3 evaluation infrastructure is complete and verified with three real samples per partition; the full CPU benchmark remains to be executed on suitable hardware. Human labels, intervention tests, and diagnosis-guided improvement remain open phases.
