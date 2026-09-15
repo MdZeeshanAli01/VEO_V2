@@ -7,7 +7,7 @@ from .config import Config, DatasetConfig, ExperimentConfig, OutputConfig, load_
 from .data import discover_pairs, validate_pairs
 from .pipeline import analyze_sample
 from .reports import write_manifest
-from .runner import run_precomputed
+from .runner import run_model, run_precomputed
 
 
 def run_smoke() -> None:
@@ -25,12 +25,14 @@ def run_smoke() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo-nyu")
-    parser.add_argument("command", choices=["smoke", "manifest", "run-precomputed"])
+    parser.add_argument("command", choices=["smoke", "manifest", "run-precomputed", "run-model"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path, default=Path("data/nyu/rgb"))
     parser.add_argument("--depth-dir", type=Path, default=Path("data/nyu/depth"))
     parser.add_argument("--prediction-dir", type=Path, default=Path("data/nyu/predictions"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"))
+    parser.add_argument("--model-id", default="depth-anything/Depth-Anything-V2-Small-hf")
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
@@ -59,6 +61,15 @@ def main() -> None:
         )
         records = run_precomputed(config, args.prediction_dir)
         print(f"Processed {len(records)} NYU samples. Results: {args.output_dir / 'precomputed_results.json'}")
+    elif args.command == "run-model":
+        config = load_config(args.config)
+        config = Config(
+            dataset=DatasetConfig(rgb_dir=args.rgb_dir, depth_dir=args.depth_dir, depth_scale=config.dataset.depth_scale, max_depth_m=config.dataset.max_depth_m, split=config.dataset.split),
+            experiment=config.experiment,
+            outputs=OutputConfig(directory=args.output_dir),
+        )
+        records = run_model(config, args.model_id, args.device)
+        print(f"Processed {len(records)} NYU samples. Results: {args.output_dir / 'model_results.json'}")
 
 
 if __name__ == "__main__":

@@ -63,6 +63,15 @@ The command validates dimensions, evaluates only valid NYU depth pixels, extract
 
 The optional model adapter is available through `TransformersDepthPredictor`. Install it with `pip install -e ".[model]"`; model inference remains separate from diagnosis so experiments can compare multiple predictors consistently.
 
+To run Depth Anything V2 directly after installing the model extra:
+
+```powershell
+uv sync --extra dev --extra model
+uv run veo-nyu run-model --model-id depth-anything/Depth-Anything-V2-Small-hf
+```
+
+This downloads the model from Hugging Face on first use, saves predictions under `outputs/predictions/`, and writes `outputs/model_results.json`.
+
 ## NYU data contract
 
 The pipeline expects a directory containing matching files such as:
