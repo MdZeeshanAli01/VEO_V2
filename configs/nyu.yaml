@@ -12,6 +12,12 @@ experiment:
   error_percentile: 85.0
   min_region_area: 25
   include_reflection: true
+  texture_variance_scale: 500.0
+  edge_density_scale: 3.0
+  contrast_scale: 60.0
+  occlusion_scale: 1.0
+  reflection_scale: 5.0
+  ambiguity_margin: 0.10
   random_seed: 42
 
 outputs:

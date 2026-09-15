@@ -22,7 +22,7 @@ def analyze_sample(rgb: np.ndarray, target: np.ndarray, prediction: np.ndarray, 
     result_regions = []
     for region in regions:
         features = extract_features(rgb, target, region)
-        classification = classify(features, config.include_reflection)
+        classification = classify(features, config.include_reflection, asdict(config))
         result_regions.append({
             "region_id": region["region_id"],
             "bbox": region["bbox"],

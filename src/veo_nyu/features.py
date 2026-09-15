@@ -12,7 +12,10 @@ def extract_features(rgb: np.ndarray, target: np.ndarray, region: dict) -> dict[
     valid_depth = depth_patch[region_mask]
     if valid_depth.size > 1 and depth_patch.shape[0] > 1 and depth_patch.shape[1] > 1:
         gy, gx = np.gradient(depth_patch.astype(np.float32))
-        depth_discontinuity = float(np.hypot(gx, gy)[region_mask].mean())
+        eroded = cv2.erode(region_mask.astype(np.uint8), np.ones((3, 3), np.uint8), iterations=1).astype(bool)
+        boundary = region_mask & ~eroded
+        boundary_valid = boundary & np.isfinite(depth_patch) & (depth_patch > 0)
+        depth_discontinuity = float(np.hypot(gx, gy)[boundary_valid].mean()) if boundary_valid.any() else 0.0
     else:
         depth_discontinuity = 0.0
     hsv = cv2.cvtColor(rgb_patch, cv2.COLOR_RGB2HSV)

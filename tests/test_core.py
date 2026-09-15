@@ -9,6 +9,7 @@ from veo_nyu.nyu_dataset import extract_labeled_mat
 from veo_nyu.regions import extract_failure_regions
 from veo_nyu.reports import write_summary
 from veo_nyu.scoring import classify
+from veo_nyu.validation import cohens_kappa
 
 
 def test_alignment_recovers_affine_depth():
@@ -43,6 +44,21 @@ def test_classification_returns_documented_fields():
         "edge_density": 0.1,
         "brightness": 128.0,
         "contrast": 20.0,
+        "highlight_ratio": 0.0,
+        "aspect_ratio": 1.0,
+        "depth_discontinuity": 2.0,
+    })
+    assert result["top_cause"] == "ambiguous"
+    assert result["confidence"] == "Low"
+    assert "score_margin" in result
+
+
+def test_classification_accepts_clear_evidence():
+    result = classify({
+        "texture_var": 500.0,
+        "edge_density": 0.0,
+        "brightness": 128.0,
+        "contrast": 60.0,
         "highlight_ratio": 0.0,
         "aspect_ratio": 1.0,
         "depth_discontinuity": 2.0,
@@ -93,3 +109,7 @@ def test_features_handle_one_pixel_wide_region():
     region = {"bbox": [0, 0, 1, 3], "mask": np.ones((3, 1), dtype=bool)}
     features = extract_features(rgb, depth, region)
     assert features["depth_discontinuity"] == 0.0
+
+
+def test_cohens_kappa_perfect_agreement():
+    assert cohens_kappa(["a", "b", "a"], ["a", "b", "a"]) == 1.0

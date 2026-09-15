@@ -101,6 +101,10 @@ uv run veo-nyu run-model --config configs/nyu.yaml --output-dir outputs/nyu_real
 
 The NYU profile enables scale-shift alignment because `Depth-Anything-V2-Small-hf` is the official relative-depth checkpoint. Use the official metric-Hypersim checkpoint only with the Hypersim profile.
 
+## Classifier validation status
+
+The NYU-tuned baseline now uses boundary depth gradients, configurable signal scales, and an `ambiguous` class when leading scores are weak or too close. On the first 10 real NYU samples, 151 regions produced 68 ambiguous, 66 high-confidence, and 17 medium-confidence classifications. This prevents unsupported forced labels, but it is not human validation. Use `veo_nyu.validation.cohens_kappa` with independent expert labels and `ablation_change` to report agreement and signal contribution.
+
 ## Official training-aligned profile
 
 The official Depth Anything V2 repository distinguishes relative depth models from metric-depth models. The official indoor metric checkpoint used by this project is:

@@ -22,6 +22,12 @@ class ExperimentConfig:
     error_percentile: float = 85.0
     min_region_area: int = 25
     include_reflection: bool = True
+    texture_variance_scale: float = 500.0
+    edge_density_scale: float = 3.0
+    contrast_scale: float = 60.0
+    occlusion_scale: float = 1.0
+    reflection_scale: float = 5.0
+    ambiguity_margin: float = 0.10
     random_seed: int = 42
 
 
@@ -58,6 +64,12 @@ def load_config(path: Path) -> Config:
             error_percentile=float(experiment_values.get("error_percentile", ExperimentConfig.error_percentile)),
             min_region_area=int(experiment_values.get("min_region_area", ExperimentConfig.min_region_area)),
             include_reflection=bool(experiment_values.get("include_reflection", ExperimentConfig.include_reflection)),
+            texture_variance_scale=float(experiment_values.get("texture_variance_scale", ExperimentConfig.texture_variance_scale)),
+            edge_density_scale=float(experiment_values.get("edge_density_scale", ExperimentConfig.edge_density_scale)),
+            contrast_scale=float(experiment_values.get("contrast_scale", ExperimentConfig.contrast_scale)),
+            occlusion_scale=float(experiment_values.get("occlusion_scale", ExperimentConfig.occlusion_scale)),
+            reflection_scale=float(experiment_values.get("reflection_scale", ExperimentConfig.reflection_scale)),
+            ambiguity_margin=float(experiment_values.get("ambiguity_margin", ExperimentConfig.ambiguity_margin)),
             random_seed=int(experiment_values.get("random_seed", ExperimentConfig.random_seed)),
         ),
         outputs=OutputConfig(directory=Path(output_values.get("directory", OutputConfig.directory))),
