@@ -1,0 +1,19 @@
+dataset:
+  name: hypersim
+  rgb_dir: data/hypersim/rgb
+  depth_dir: data/hypersim/depth
+  manifest: data/hypersim/manifest.txt
+  depth_scale: 1.0
+  max_depth_m: 20.0
+  split: official_train_or_val
+
+experiment:
+  model_name: depth_anything_v2_metric_hypersim_small
+  align_scale_shift: false
+  error_percentile: 85.0
+  min_region_area: 25
+  include_reflection: true
+  random_seed: 42
+
+outputs:
+  directory: outputs/hypersim

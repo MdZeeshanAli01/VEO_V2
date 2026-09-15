@@ -85,6 +85,33 @@ Depth PNG values are interpreted as `raw_value / depth_scale` meters. The defaul
 
 Do not use KITTI sparse-depth assumptions in this project. NYU evaluation is dense but still requires an explicit invalid-depth policy and a documented maximum evaluation depth.
 
+## Official training-aligned profile
+
+The official Depth Anything V2 repository distinguishes relative depth models from metric-depth models. The official indoor metric checkpoint used by this project is:
+
+```text
+Depth-Anything-V2-Metric-Hypersim-Small
+```
+
+It is fine-tuned on the synthetic Hypersim dataset, uses a 20 metre maximum depth, and produces metric depth in metres. NYU Depth V2 is not the training dataset for this checkpoint; NYU is an external indoor evaluation option.
+
+The official source repository is cloned locally at `official/Depth-Anything-V2` and the checkpoint is stored locally at `checkpoints/`. Both are ignored by Git because they are external source/large binary assets.
+
+After downloading the original Hypersim release and creating an official two-column manifest (`RGB_PATH DEPTH_HDF5_PATH` per line), run:
+
+```powershell
+uv run veo-nyu run-official-metric `
+	--config configs/hypersim.yaml `
+	--manifest data/hypersim/manifest.txt `
+	--checkpoint checkpoints/depth_anything_v2_metric_hypersim_vits.pth `
+	--official-repo official/Depth-Anything-V2 `
+	--encoder vits `
+	--max-depth 20 `
+	--device cpu
+```
+
+The official Hypersim depth files are HDF5 distance maps. VEO applies the same official distance-to-depth conversion used by Depth Anything V2 before evaluating regions.
+
 ## Current status
 
 The initial implementation validates the data contract, masked metrics, region extraction, evidence scoring, manifests, visual panels, aggregate summaries, and correlation exports. Human labels can be added to `outputs/regions.csv` for agreement analysis in the next research stage.

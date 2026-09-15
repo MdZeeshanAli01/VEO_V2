@@ -6,4 +6,6 @@ __pycache__/
 *.egg-info/
 data/
 outputs/
+official/
+checkpoints/
 notebooks/.ipynb_checkpoints/

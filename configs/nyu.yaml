@@ -7,7 +7,7 @@ dataset:
   split: official_test
 
 experiment:
-  model_name: precomputed
+  model_name: depth_anything_v2_relative_small
   align_scale_shift: false
   error_percentile: 85.0
   min_region_area: 25

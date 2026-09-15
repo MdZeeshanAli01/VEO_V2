@@ -6,9 +6,10 @@ import yaml
 
 @dataclass(frozen=True)
 class DatasetConfig:
-    name: str = "nyu_depth_v2"
-    rgb_dir: Path = Path("data/nyu/rgb")
-    depth_dir: Path = Path("data/nyu/depth")
+    name: str = "hypersim"
+    rgb_dir: Path = Path("data/hypersim/rgb")
+    depth_dir: Path = Path("data/hypersim/depth")
+    manifest: Path | None = Path("data/hypersim/manifest.txt")
     depth_scale: float = 1000.0
     max_depth_m: float = 10.0
     split: str = "official_test"
@@ -46,6 +47,7 @@ def load_config(path: Path) -> Config:
             name=dataset_values.get("name", DatasetConfig.name),
             rgb_dir=Path(dataset_values.get("rgb_dir", DatasetConfig.rgb_dir)),
             depth_dir=Path(dataset_values.get("depth_dir", DatasetConfig.depth_dir)),
+            manifest=Path(dataset_values["manifest"]) if dataset_values.get("manifest") else None,
             depth_scale=float(dataset_values.get("depth_scale", DatasetConfig.depth_scale)),
             max_depth_m=float(dataset_values.get("max_depth_m", DatasetConfig.max_depth_m)),
             split=dataset_values.get("split", DatasetConfig.split),

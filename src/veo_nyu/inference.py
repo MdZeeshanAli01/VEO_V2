@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Protocol
 
@@ -45,3 +46,40 @@ class TransformersDepthPredictor:
 
             prediction = cv2.resize(prediction, (rgb.shape[1], rgb.shape[0]))
         return prediction
+
+
+class OfficialMetricDepthPredictor:
+    """Official Depth Anything V2 metric-depth implementation and checkpoint."""
+
+    def __init__(self, official_repo: Path, checkpoint: Path, encoder: str = "vits", max_depth: float = 20.0, device: str = "auto"):
+        try:
+            import cv2
+            import torch
+        except ImportError as exc:
+            raise ImportError("Install model dependencies with: uv sync --extra model") from exc
+        if not checkpoint.exists():
+            raise FileNotFoundError(f"Metric checkpoint not found: {checkpoint}")
+        metric_depth = official_repo / "metric_depth"
+        for path in (official_repo, metric_depth):
+            if str(path) not in sys.path:
+                sys.path.insert(0, str(path))
+        from depth_anything_v2.dpt import DepthAnythingV2
+
+        configs = {
+            "vits": {"encoder": "vits", "features": 64, "out_channels": [48, 96, 192, 384]},
+            "vitb": {"encoder": "vitb", "features": 128, "out_channels": [96, 192, 384, 768]},
+            "vitl": {"encoder": "vitl", "features": 256, "out_channels": [256, 512, 1024, 1024]},
+        }
+        if encoder not in configs:
+            raise ValueError(f"Unsupported official metric encoder: {encoder}")
+        self._device = "cuda" if device == "auto" and torch.cuda.is_available() else device
+        if self._device == "auto":
+            self._device = "cpu"
+        self._cv2 = cv2
+        self._model = DepthAnythingV2(**{**configs[encoder], "max_depth": max_depth})
+        self._model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+        self._model = self._model.to(self._device).eval()
+
+    def predict(self, rgb: np.ndarray) -> np.ndarray:
+        bgr = self._cv2.cvtColor(rgb, self._cv2.COLOR_RGB2BGR)
+        return self._model.infer_image(bgr).astype(np.float32)

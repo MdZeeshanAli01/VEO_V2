@@ -12,6 +12,19 @@ class RGBDepthPair:
     depth_path: Path
 
 
+def discover_manifest(manifest_path: Path) -> list[RGBDepthPair]:
+    pairs = []
+    for line in manifest_path.read_text(encoding="utf-8").splitlines():
+        fields = line.strip().split()
+        if not fields or fields[0].startswith("#"):
+            continue
+        if len(fields) != 2:
+            raise ValueError(f"Each manifest line must contain RGB and depth paths: {line}")
+        rgb_path, depth_path = (Path(field) for field in fields)
+        pairs.append(RGBDepthPair(rgb_path.stem, rgb_path, depth_path))
+    return pairs
+
+
 def discover_pairs(rgb_dir: Path, depth_dir: Path) -> list[RGBDepthPair]:
     rgb_files = {path.stem: path for path in rgb_dir.glob("*") if path.suffix.lower() in {".png", ".jpg", ".jpeg"}}
     depth_files = {path.stem: path for path in depth_dir.glob("*") if path.suffix.lower() in {".png", ".npy"}}
@@ -37,6 +50,16 @@ def load_rgb(path: Path) -> np.ndarray:
 
 
 def load_depth(path: Path, depth_scale: float = 1000.0) -> np.ndarray:
+    if path.suffix.lower() in {".h5", ".hdf5"}:
+        import h5py
+
+        with h5py.File(path, "r") as handle:
+            distance = np.asarray(handle["dataset"], dtype=np.float32)
+        width, height, focal = 1024, 768, 886.81
+        image_x = np.linspace((-0.5 * width) + 0.5, (0.5 * width) - 0.5, width)[None, :].repeat(height, 0)
+        image_y = np.linspace((-0.5 * height) + 0.5, (0.5 * height) - 0.5, height)[:, None].repeat(width, 1)
+        norm = np.sqrt(image_x**2 + image_y**2 + focal**2)
+        return distance / norm * focal
     if path.suffix.lower() == ".npy":
         depth = np.asarray(np.load(path), dtype=np.float32)
     else:
