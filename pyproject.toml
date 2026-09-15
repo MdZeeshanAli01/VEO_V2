@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "veo-nyu"
+version = "0.1.0"
+description = "NYU RGB-D region-level failure diagnosis for monocular depth estimation"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.11",
+  "pillow>=10.0",
+  "opencv-python>=4.8",
+  "matplotlib>=3.7",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+model = ["torch>=2.0", "transformers>=4.30", "accelerate>=0.25"]
+dev = ["pytest>=7.4", "ruff>=0.5"]
+
+[project.scripts]
+veo-nyu = "veo_nyu.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["veo_nyu*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100

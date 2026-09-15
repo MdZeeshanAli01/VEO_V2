@@ -1,0 +1,18 @@
+dataset:
+  name: nyu_depth_v2
+  rgb_dir: data/nyu/rgb
+  depth_dir: data/nyu/depth
+  depth_scale: 1000.0
+  max_depth_m: 10.0
+  split: official_test
+
+experiment:
+  model_name: precomputed
+  align_scale_shift: false
+  error_percentile: 85.0
+  min_region_area: 25
+  include_reflection: true
+  random_seed: 42
+
+outputs:
+  directory: outputs
