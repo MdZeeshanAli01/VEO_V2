@@ -19,9 +19,14 @@ def discover_pairs(rgb_dir: Path, depth_dir: Path) -> list[RGBDepthPair]:
     return [RGBDepthPair(sample_id, rgb_files[sample_id], depth_files[sample_id]) for sample_id in sample_ids]
 
 
-def validate_pairs(pairs: list[RGBDepthPair]) -> None:
+def validate_pairs(pairs: list[RGBDepthPair], rgb_dir: Path | None = None, depth_dir: Path | None = None) -> None:
     if not pairs:
-        raise FileNotFoundError("No matching RGB/depth pairs were found")
+        location = f" RGB directory: {rgb_dir}; depth directory: {depth_dir}." if rgb_dir and depth_dir else ""
+        raise FileNotFoundError(
+            "No matching NYU RGB/depth pairs were found."
+            f"{location} Expected files with identical stems, for example "
+            "data/nyu/rgb/scene_0001.png and data/nyu/depth/scene_0001.png."
+        )
     duplicate_ids = {pair.sample_id for pair in pairs if sum(item.sample_id == pair.sample_id for item in pairs) > 1}
     if duplicate_ids:
         raise ValueError(f"Duplicate sample IDs found: {sorted(duplicate_ids)}")

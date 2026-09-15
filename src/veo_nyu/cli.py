@@ -48,7 +48,7 @@ def main() -> None:
         )
         config = Config(dataset=dataset, experiment=config.experiment, outputs=OutputConfig(directory=args.output_dir))
         pairs = discover_pairs(config.dataset.rgb_dir, config.dataset.depth_dir)
-        validate_pairs(pairs)
+        validate_pairs(pairs, config.dataset.rgb_dir, config.dataset.depth_dir)
         manifest_path = config.outputs.directory / f"{config.dataset.split}_manifest.json"
         write_manifest(pairs, manifest_path, config.dataset.split)
         print(f"Manifest created for {len(pairs)} samples: {manifest_path}")

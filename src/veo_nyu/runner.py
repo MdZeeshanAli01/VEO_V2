@@ -15,7 +15,7 @@ from .visualization import save_panel
 
 def run_precomputed(config: Config, prediction_dir: Path) -> list[dict]:
     pairs = discover_pairs(config.dataset.rgb_dir, config.dataset.depth_dir)
-    validate_pairs(pairs)
+    validate_pairs(pairs, config.dataset.rgb_dir, config.dataset.depth_dir)
     predictor = PrecomputedPredictor(prediction_dir)
     records = []
     for pair in pairs:
@@ -40,7 +40,7 @@ def run_precomputed(config: Config, prediction_dir: Path) -> list[dict]:
 
 def run_model(config: Config, model_id: str, device: str = "auto") -> list[dict]:
     pairs = discover_pairs(config.dataset.rgb_dir, config.dataset.depth_dir)
-    validate_pairs(pairs)
+    validate_pairs(pairs, config.dataset.rgb_dir, config.dataset.depth_dir)
     predictor = TransformersDepthPredictor(model_id, device)
     output_dir = config.outputs.directory
     prediction_dir = output_dir / "predictions"
