@@ -85,6 +85,22 @@ Depth PNG values are interpreted as `raw_value / depth_scale` meters. The defaul
 
 Do not use KITTI sparse-depth assumptions in this project. NYU evaluation is dense but still requires an explicit invalid-depth policy and a documented maximum evaluation depth.
 
+The official NYU v2 labeled download is a MATLAB v7.3 file. Extract real aligned samples with:
+
+```powershell
+uv run veo-nyu extract-nyu --mat-path data/nyu/nyu_depth_v2_labeled.mat --start 0 --count 10
+```
+
+This writes RGB PNGs to `data/nyu/rgb/` and exact depth arrays in metres to `data/nyu/depth/`. No synthetic data is generated.
+
+Run the model on the extracted original NYU samples with:
+
+```powershell
+uv run veo-nyu run-model --config configs/nyu.yaml --output-dir outputs/nyu_real --device cpu
+```
+
+The NYU profile enables scale-shift alignment because `Depth-Anything-V2-Small-hf` is the official relative-depth checkpoint. Use the official metric-Hypersim checkpoint only with the Hypersim profile.
+
 ## Official training-aligned profile
 
 The official Depth Anything V2 repository distinguishes relative depth models from metric-depth models. The official indoor metric checkpoint used by this project is:

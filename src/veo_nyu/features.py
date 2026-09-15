@@ -10,7 +10,7 @@ def extract_features(rgb: np.ndarray, target: np.ndarray, region: dict) -> dict[
     gray = cv2.cvtColor(rgb_patch, cv2.COLOR_RGB2GRAY)
     edges = cv2.Canny(gray, 100, 200)
     valid_depth = depth_patch[region_mask]
-    if valid_depth.size > 1:
+    if valid_depth.size > 1 and depth_patch.shape[0] > 1 and depth_patch.shape[1] > 1:
         gy, gx = np.gradient(depth_patch.astype(np.float32))
         depth_discontinuity = float(np.hypot(gx, gy)[region_mask].mean())
     else:

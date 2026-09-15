@@ -2,8 +2,10 @@ import numpy as np
 from PIL import Image
 
 from veo_nyu.data import discover_pairs, load_depth, validate_pairs
+from veo_nyu.features import extract_features
 from veo_nyu.inference import PrecomputedPredictor
 from veo_nyu.metrics import align_scale_shift, compute_metrics
+from veo_nyu.nyu_dataset import extract_labeled_mat
 from veo_nyu.regions import extract_failure_regions
 from veo_nyu.reports import write_summary
 from veo_nyu.scoring import classify
@@ -70,3 +72,24 @@ def test_summary_exports_region_csv(tmp_path):
     write_summary(records, tmp_path)
     assert (tmp_path / "summary.json").exists()
     assert "occlusion" in (tmp_path / "regions.csv").read_text(encoding="utf-8")
+
+
+def test_extract_official_nyu_mat_layout(tmp_path):
+    mat_path = tmp_path / "nyu.mat"
+    import h5py
+
+    with h5py.File(mat_path, "w") as handle:
+        handle.create_dataset("images", data=np.zeros((1, 3, 4, 3), dtype=np.uint8))
+        handle.create_dataset("depths", data=np.full((1, 4, 3), 2.0, dtype=np.float32))
+    extracted = extract_labeled_mat(mat_path, tmp_path / "rgb", tmp_path / "depth")
+    assert extracted == 1
+    assert Image.open(tmp_path / "rgb" / "scene_0001.png").size == (4, 3)
+    assert np.allclose(np.load(tmp_path / "depth" / "scene_0001.npy"), 2.0)
+
+
+def test_features_handle_one_pixel_wide_region():
+    rgb = np.zeros((3, 1, 3), dtype=np.uint8)
+    depth = np.ones((3, 1), dtype=np.float32)
+    region = {"bbox": [0, 0, 1, 3], "mask": np.ones((3, 1), dtype=bool)}
+    features = extract_features(rgb, depth, region)
+    assert features["depth_discontinuity"] == 0.0

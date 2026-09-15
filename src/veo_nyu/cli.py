@@ -5,6 +5,7 @@ import numpy as np
 
 from .config import Config, DatasetConfig, ExperimentConfig, OutputConfig, load_config
 from .data import discover_manifest, discover_pairs, validate_pairs
+from .nyu_dataset import extract_labeled_mat
 from .pipeline import analyze_sample
 from .reports import write_manifest
 from .runner import run_model, run_official_metric, run_precomputed
@@ -38,7 +39,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo-nyu")
-    parser.add_argument("command", choices=["smoke", "manifest", "run-precomputed", "run-model", "run-official-metric"])
+    parser.add_argument("command", choices=["smoke", "manifest", "extract-nyu", "run-precomputed", "run-model", "run-official-metric"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -51,6 +52,9 @@ def main() -> None:
     parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/depth_anything_v2_metric_hypersim_vits.pth"))
     parser.add_argument("--encoder", choices=["vits", "vitb", "vitl"], default="vits")
     parser.add_argument("--max-depth", type=float, default=20.0)
+    parser.add_argument("--mat-path", type=Path, default=Path("data/nyu/nyu_depth_v2_labeled.mat"))
+    parser.add_argument("--start", type=int, default=0)
+    parser.add_argument("--count", type=int)
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
@@ -62,6 +66,9 @@ def main() -> None:
         manifest_path = config.outputs.directory / f"{config.dataset.split}_manifest.json"
         write_manifest(pairs, manifest_path, config.dataset.split)
         print(f"Manifest created for {len(pairs)} samples: {manifest_path}")
+    elif args.command == "extract-nyu":
+        extracted = extract_labeled_mat(args.mat_path, args.rgb_dir or Path("data/nyu/rgb"), args.depth_dir or Path("data/nyu/depth"), args.start, args.count)
+        print(f"Extracted {extracted} official NYU RGB/depth pairs")
     elif args.command == "run-precomputed":
         config = load_config(args.config)
         config = configured(args, config)
