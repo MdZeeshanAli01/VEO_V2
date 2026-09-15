@@ -10,6 +10,7 @@ from .nyu_dataset import create_scene_splits, extract_labeled_mat, extract_split
 from .pipeline import analyze_sample
 from .reports import write_manifest
 from .runner import run_model, run_official_metric, run_precomputed
+from .validation import export_rating_set
 
 
 def run_smoke() -> None:
@@ -40,7 +41,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo-nyu")
-    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "run-precomputed", "run-model", "run-official-metric"])
+    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "prepare-rating", "run-precomputed", "run-model", "run-official-metric"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -59,6 +60,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--split-root", type=Path, default=Path("data/nyu/splits"))
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--results-path", type=Path)
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
@@ -114,6 +116,11 @@ def main() -> None:
             )
             records = run_model(split_config, args.model_id, args.device, args.limit)
             print(f"{split}: processed {len(records)} samples")
+    elif args.command == "prepare-rating":
+        if not args.results_path:
+            raise ValueError("--results-path is required for prepare-rating")
+        count = export_rating_set(args.results_path, args.rgb_dir, args.depth_dir, args.prediction_dir, args.output_dir or Path("outputs/rating_set"), args.limit or 200, args.seed)
+        print(f"Exported {count} blinded rating regions")
     elif args.command == "run-official-metric":
         config = load_config(args.config)
         config = configured(args, config, args.max_depth)

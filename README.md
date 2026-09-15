@@ -117,6 +117,20 @@ uv run veo-nyu evaluate-splits `
 
 For a CPU smoke run, add `--limit 3`. The full command writes independent results under `outputs/nyu_evaluation/development`, `validation`, and `test`; no test results are used to tune thresholds.
 
+Prepare a blinded human-rating package from a completed result file with:
+
+```powershell
+uv run veo-nyu prepare-rating `
+	--results-path outputs/nyu_evaluation_smoke/test/model_results.json `
+	--rgb-dir data/nyu/splits/test/rgb `
+	--depth-dir data/nyu/splits/test/depth `
+	--prediction-dir outputs/nyu_evaluation_smoke/test/predictions `
+	--output-dir outputs/rating_set `
+	--limit 200
+```
+
+The command creates blinded panels, `rating_template.csv`, and `rater_instructions.md`. It does not include VEO's predicted labels in the rater template.
+
 Run the model on the extracted original NYU samples with:
 
 ```powershell
@@ -158,4 +172,4 @@ The official Hypersim depth files are HDF5 distance maps. VEO applies the same o
 
 ## Current status
 
-Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Phase 3 evaluation infrastructure is complete and verified with three real samples per partition; the full CPU benchmark remains to be executed on suitable hardware. Human labels, intervention tests, and diagnosis-guided improvement remain open phases.
+Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Phase 3 evaluation infrastructure is complete and verified with three real samples per partition; the full CPU benchmark remains to be executed on suitable hardware. Phase 4 preparation is complete: blinded rating-package export is implemented. Actual human labeling, agreement measurement, intervention tests, and diagnosis-guided improvement remain open phases.
