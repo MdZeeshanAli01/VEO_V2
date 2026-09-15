@@ -14,6 +14,8 @@ VEO NYU diagnoses *where* a monocular depth model fails and records measurable e
 6. Assign interpretable rule-based cause scores and confidence.
 7. Save run metadata, metrics, regions, and validation-ready records.
 
+The frozen scientific scope and evaluation rules are defined in [docs/RESEARCH_PROTOCOL_V1.md](docs/RESEARCH_PROTOCOL_V1.md). This protocol must be followed for full-scale experiments; the current 10-image NYU result remains development evidence, not a final test result.
+
 ## Project layout
 
 - `veo_nyu/`: reusable pipeline code
@@ -134,4 +136,4 @@ The official Hypersim depth files are HDF5 distance maps. VEO applies the same o
 
 ## Current status
 
-The initial implementation validates the data contract, masked metrics, region extraction, evidence scoring, manifests, visual panels, aggregate summaries, and correlation exports. Human labels can be added to `outputs/regions.csv` for agreement analysis in the next research stage.
+Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. The implementation validates the data contract, masked metrics, region extraction, evidence scoring, manifests, visual panels, aggregate summaries, and correlation exports. Human labels, held-out scene evaluation, intervention tests, and diagnosis-guided improvement remain open phases.
