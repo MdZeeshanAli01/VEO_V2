@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 model = ["torch>=2.0", "torchvision>=0.24", "transformers>=4.30", "accelerate>=0.25"]
 dev = ["pytest>=7.4", "ruff>=0.5"]
+dataset = ["requests>=2.31"]
 
 [project.scripts]
 veo-nyu = "veo_nyu.cli:main"

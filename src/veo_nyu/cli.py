@@ -77,7 +77,7 @@ def main() -> None:
         config = configured(args, config, args.max_depth)
         config = Config(dataset=config.dataset, experiment=ExperimentConfig(**{**config.experiment.__dict__, "model_name": f"metric_hypersim_{args.encoder}", "align_scale_shift": False}), outputs=config.outputs)
         records = run_official_metric(config, args.official_repo, args.checkpoint, args.encoder, args.max_depth, args.device)
-        print(f"Processed {len(records)} samples. Results: {args.output_dir / 'official_metric_results.json'}")
+        print(f"Processed {len(records)} samples. Results: {config.outputs.directory / 'official_metric_results.json'}")
 
 
 if __name__ == "__main__":
