@@ -173,3 +173,4 @@ The official Hypersim depth files are HDF5 distance maps. VEO applies the same o
 ## Current status
 
 Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Phase 3 evaluation infrastructure is complete and verified with three real samples per partition; the full CPU benchmark remains to be executed on suitable hardware. Phase 4 preparation is complete: blinded rating-package export is implemented. Actual human labeling, agreement measurement, intervention tests, and diagnosis-guided improvement remain open phases.
+VEO
