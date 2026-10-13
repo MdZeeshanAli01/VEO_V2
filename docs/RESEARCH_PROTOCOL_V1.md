@@ -80,8 +80,11 @@ Every model report must record:
 - maximum evaluation depth
 - validity mask policy
 - alignment policy
+- prediction space (`depth` or `inverse_depth`)
 
-Relative-depth models use scale-shift alignment for metric evaluation. Metric-depth models are evaluated without fitted alignment unless a separate ablation explicitly studies alignment.
+Relative-depth models must declare whether their output is depth-like or inverse-depth-like. For an inverse-depth output $q$, fit $1/D \approx a q + b$ on valid pixels and evaluate the reconstructed depth $\hat D = 1/(a q+b)$. Do not fit inverse depth directly to metric depth; that can produce a negative scale and reverses the geometry. Relative-depth models use this scale-shift alignment for metric evaluation. Metric-depth models are evaluated without fitted alignment unless a separate ablation explicitly studies alignment.
+
+The alignment-space ablation compares four fixed protocols on each scene-level split: no alignment, direct depth scale-shift, inverse-depth scale-shift, and inverse-depth scale-only. The ablation is descriptive and must not be used to select a test protocol after inspecting test results. It reports absolute and relative errors, threshold accuracies, Spearman rank correlation, fitted scale, and scale sign. A negative direct-depth scale is evidence of an output-space polarity mismatch, not evidence that the model has learned negative physical depth.
 
 ## 8. Error Localization Protocol
 

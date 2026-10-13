@@ -40,12 +40,25 @@ class TransformersDepthPredictor:
         from PIL import Image
 
         result = self._pipe(Image.fromarray(rgb))
+        return self._prediction_from_result(result, rgb.shape[:2])
+
+    @staticmethod
+    def _prediction_from_result(result, expected_shape: tuple[int, int]) -> np.ndarray:
         prediction = result["predicted_depth"].squeeze().detach().cpu().numpy().astype(np.float32)
-        if prediction.shape != rgb.shape[:2]:
+        if prediction.shape != expected_shape:
             import cv2
 
-            prediction = cv2.resize(prediction, (rgb.shape[1], rgb.shape[0]))
+            prediction = cv2.resize(prediction, (expected_shape[1], expected_shape[0]))
         return prediction
+
+    def predict_batch(self, rgb_images: list[np.ndarray], batch_size: int = 4) -> list[np.ndarray]:
+        from PIL import Image
+
+        results = self._pipe([Image.fromarray(rgb) for rgb in rgb_images], batch_size=batch_size)
+        return [
+            self._prediction_from_result(result, rgb.shape[:2])
+            for result, rgb in zip(results, rgb_images)
+        ]
 
 
 class OfficialMetricDepthPredictor:

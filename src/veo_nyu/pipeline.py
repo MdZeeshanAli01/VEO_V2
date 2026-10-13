@@ -12,10 +12,15 @@ from .scoring import classify
 def analyze_sample(rgb: np.ndarray, target: np.ndarray, prediction: np.ndarray, valid_mask: np.ndarray, config: ExperimentConfig) -> dict:
     if rgb.shape[:2] != target.shape or target.shape != prediction.shape:
         raise ValueError("RGB, target, and prediction dimensions do not match")
+    valid_mask = valid_mask & np.isfinite(target) & (target > 0.0) & np.isfinite(prediction)
+    if not valid_mask.any():
+        raise ValueError("Cannot analyze a sample with no finite, positive target/prediction pixels")
     scale, shift = 1.0, 0.0
     aligned_prediction = prediction.astype(np.float32)
     if config.align_scale_shift:
-        aligned_prediction, scale, shift = align_scale_shift(aligned_prediction, target, valid_mask)
+        aligned_prediction, scale, shift = align_scale_shift(
+            aligned_prediction, target, valid_mask, config.prediction_space
+        )
     metrics = compute_metrics(aligned_prediction, target, valid_mask)
     error_map = compute_error_map(aligned_prediction, target, valid_mask)
     regions = extract_failure_regions(error_map, valid_mask, config.error_percentile, config.min_region_area)
@@ -33,7 +38,12 @@ def analyze_sample(rgb: np.ndarray, target: np.ndarray, prediction: np.ndarray, 
         })
     return {
         "metrics": metrics,
-        "alignment": {"scale": scale, "shift": shift, "enabled": config.align_scale_shift},
+        "alignment": {
+            "scale": scale,
+            "shift": shift,
+            "enabled": config.align_scale_shift,
+            "prediction_space": config.prediction_space,
+        },
         "threshold": float(np.percentile(error_map[valid_mask], config.error_percentile)),
         "num_regions": len(result_regions),
         "regions": result_regions,

@@ -19,6 +19,8 @@ class DatasetConfig:
 class ExperimentConfig:
     model_name: str = "precomputed"
     align_scale_shift: bool = False
+    prediction_space: str = "depth"
+    primary_protocol: str = "inverse_depth_scale_shift"
     error_percentile: float = 85.0
     min_region_area: int = 25
     include_reflection: bool = True
@@ -61,6 +63,8 @@ def load_config(path: Path) -> Config:
         experiment=ExperimentConfig(
             model_name=experiment_values.get("model_name", ExperimentConfig.model_name),
             align_scale_shift=bool(experiment_values.get("align_scale_shift", ExperimentConfig.align_scale_shift)),
+            prediction_space=experiment_values.get("prediction_space", ExperimentConfig.prediction_space),
+            primary_protocol=experiment_values.get("primary_protocol", ExperimentConfig.primary_protocol),
             error_percentile=float(experiment_values.get("error_percentile", ExperimentConfig.error_percentile)),
             min_region_area=int(experiment_values.get("min_region_area", ExperimentConfig.min_region_area)),
             include_reflection=bool(experiment_values.get("include_reflection", ExperimentConfig.include_reflection)),

@@ -9,7 +9,7 @@ from .data import discover_manifest, discover_pairs, validate_pairs
 from .nyu_dataset import create_scene_splits, extract_labeled_mat, extract_split
 from .pipeline import analyze_sample
 from .reports import write_manifest
-from .runner import run_model, run_official_metric, run_precomputed
+from .runner import run_alignment_ablation, run_model, run_official_metric, run_precomputed
 from .validation import export_rating_set
 
 
@@ -41,7 +41,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo-nyu")
-    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "prepare-rating", "run-precomputed", "run-model", "run-official-metric"])
+    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "compare-alignment", "prepare-rating", "run-precomputed", "run-model", "run-official-metric"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -91,12 +91,12 @@ def main() -> None:
         config = load_config(args.config)
         config = configured(args, config)
         records = run_precomputed(config, args.prediction_dir)
-        print(f"Processed {len(records)} NYU samples. Results: {args.output_dir / 'precomputed_results.json'}")
+        print(f"Processed {len(records)} NYU samples. Results: {config.outputs.directory / 'precomputed_results.json'}")
     elif args.command == "run-model":
         config = load_config(args.config)
         config = configured(args, config)
         records = run_model(config, args.model_id, args.device, args.limit)
-        print(f"Processed {len(records)} NYU samples. Results: {args.output_dir / 'model_results.json'}")
+        print(f"Processed {len(records)} NYU samples. Results: {config.outputs.directory / 'model_results.json'}")
     elif args.command == "evaluate-splits":
         base_config = load_config(args.config)
         split_root = args.split_root
@@ -116,6 +116,25 @@ def main() -> None:
             )
             records = run_model(split_config, args.model_id, args.device, args.limit)
             print(f"{split}: processed {len(records)} samples")
+    elif args.command == "compare-alignment":
+        base_config = load_config(args.config)
+        split_root = args.split_root
+        for split in ("development", "validation", "test"):
+            split_config = Config(
+                dataset=DatasetConfig(
+                    name=base_config.dataset.name,
+                    rgb_dir=split_root / split / "rgb",
+                    depth_dir=split_root / split / "depth",
+                    manifest=split_root / split / "manifest.txt",
+                    depth_scale=base_config.dataset.depth_scale,
+                    max_depth_m=base_config.dataset.max_depth_m,
+                    split=split,
+                ),
+                experiment=base_config.experiment,
+                outputs=OutputConfig(directory=(args.output_dir or Path("outputs/alignment_ablation")) / split),
+            )
+            payload = run_alignment_ablation(split_config, args.model_id, args.device, args.limit, args.start)
+            print(f"{split}: processed {len(payload['records'])} samples")
     elif args.command == "prepare-rating":
         if not args.results_path:
             raise ValueError("--results-path is required for prepare-rating")

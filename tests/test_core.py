@@ -4,7 +4,7 @@ from PIL import Image
 from veo_nyu.data import discover_pairs, load_depth, validate_pairs
 from veo_nyu.features import extract_features
 from veo_nyu.inference import PrecomputedPredictor
-from veo_nyu.metrics import align_scale_shift, compute_metrics
+from veo_nyu.metrics import align_scale_only, align_scale_shift, compute_metrics
 from veo_nyu.nyu_dataset import create_scene_splits, extract_labeled_mat
 from veo_nyu.regions import extract_failure_regions
 from veo_nyu.reports import write_summary
@@ -21,12 +21,38 @@ def test_alignment_recovers_affine_depth():
     assert np.allclose(aligned, target)
 
 
+def test_alignment_handles_inverse_depth_predictions():
+    target = np.array([[2.0, 4.0], [5.0, 10.0]], dtype=np.float32)
+    inverse_prediction = 3.0 / target + 0.2
+    aligned, scale, shift = align_scale_shift(
+        inverse_prediction, target, np.ones_like(target, dtype=bool), "inverse_depth"
+    )
+    assert np.isfinite((scale, shift)).all()
+    assert np.allclose(aligned, target, atol=1e-5)
+
+
+def test_scale_only_alignment_handles_inverse_depth_predictions():
+    target = np.array([[2.0, 4.0], [5.0, 10.0]], dtype=np.float32)
+    inverse_prediction = 3.0 / target
+    aligned, scale = align_scale_only(inverse_prediction, target, np.ones_like(target, dtype=bool))
+    assert np.isclose(scale, 1.0 / 3.0)
+    assert np.allclose(aligned, target, atol=1e-5)
+
+
 def test_metrics_use_only_valid_pixels():
     prediction = np.array([[1.0, 3.0], [100.0, 1.0]], dtype=np.float32)
     target = np.ones((2, 2), dtype=np.float32)
     valid = np.array([[True, True], [False, True]])
     metrics = compute_metrics(prediction, target, valid)
     assert np.isclose(metrics["abs_rel"], 2.0 / 3.0)
+    assert set(("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3")) <= metrics.keys()
+
+
+def test_metrics_ignore_nonfinite_predictions():
+    prediction = np.array([[1.0, np.nan], [3.0, 4.0]], dtype=np.float32)
+    target = np.ones((2, 2), dtype=np.float32)
+    metrics = compute_metrics(prediction, target, np.ones((2, 2), dtype=bool))
+    assert np.isfinite(list(metrics.values())).all()
 
 
 def test_regions_respect_area_and_mask():

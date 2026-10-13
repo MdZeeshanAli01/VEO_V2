@@ -1,34 +1,88 @@
 import numpy as np
+from scipy.stats import spearmanr
 
 
-def align_scale_shift(prediction: np.ndarray, target: np.ndarray, valid_mask: np.ndarray) -> tuple[np.ndarray, float, float]:
+def _evaluation_mask(prediction: np.ndarray, target: np.ndarray, valid_mask: np.ndarray) -> np.ndarray:
     if prediction.shape != target.shape or valid_mask.shape != target.shape:
         raise ValueError("Prediction, target, and valid_mask must have identical shapes")
-    if int(valid_mask.sum()) < 2:
+    return valid_mask & np.isfinite(prediction) & np.isfinite(target) & (target > 0.0)
+
+
+def align_scale_shift(
+    prediction: np.ndarray,
+    target: np.ndarray,
+    valid_mask: np.ndarray,
+    prediction_space: str = "depth",
+) -> tuple[np.ndarray, float, float]:
+    if prediction_space not in {"depth", "inverse_depth"}:
+        raise ValueError(f"Unsupported prediction space: {prediction_space}")
+    evaluation_mask = _evaluation_mask(prediction, target, valid_mask)
+    if int(evaluation_mask.sum()) < 2:
         return prediction.astype(np.float32), 1.0, 0.0
-    p = prediction[valid_mask].astype(np.float64)
-    t = target[valid_mask].astype(np.float64)
+    p = prediction[evaluation_mask].astype(np.float64)
+    t = target[evaluation_mask].astype(np.float64)
+    if prediction_space == "inverse_depth":
+        t = 1.0 / t
     design = np.stack([p, np.ones_like(p)], axis=1)
     scale, shift = np.linalg.lstsq(design, t, rcond=None)[0]
-    return (prediction * scale + shift).astype(np.float32), float(scale), float(shift)
+    aligned = prediction * scale + shift
+    if prediction_space == "inverse_depth":
+        aligned = 1.0 / np.clip(aligned, 1e-6, None)
+    return aligned.astype(np.float32), float(scale), float(shift)
+
+
+def align_scale_only(
+    prediction: np.ndarray,
+    target: np.ndarray,
+    valid_mask: np.ndarray,
+    prediction_space: str = "inverse_depth",
+) -> tuple[np.ndarray, float]:
+    if prediction_space not in {"depth", "inverse_depth"}:
+        raise ValueError(f"Unsupported prediction space: {prediction_space}")
+    evaluation_mask = _evaluation_mask(prediction, target, valid_mask)
+    if int(evaluation_mask.sum()) < 2:
+        return prediction.astype(np.float32), 1.0
+    p = prediction[evaluation_mask].astype(np.float64)
+    t = target[evaluation_mask].astype(np.float64)
+    if prediction_space == "inverse_depth":
+        t = 1.0 / t
+    denominator = float(np.dot(p, p))
+    if denominator <= 1e-12:
+        return prediction.astype(np.float32), 1.0
+    scale = float(np.dot(p, t) / denominator)
+    aligned = prediction * scale
+    if prediction_space == "inverse_depth":
+        aligned = 1.0 / np.clip(aligned, 1e-6, None)
+    return aligned.astype(np.float32), scale
 
 
 def compute_metrics(prediction: np.ndarray, target: np.ndarray, valid_mask: np.ndarray) -> dict[str, float]:
-    if prediction.shape != target.shape or valid_mask.shape != target.shape:
-        raise ValueError("Prediction, target, and valid_mask must have identical shapes")
-    if not valid_mask.any():
+    evaluation_mask = _evaluation_mask(prediction, target, valid_mask)
+    if not evaluation_mask.any():
         raise ValueError("Cannot compute metrics with an empty valid mask")
-    pred = prediction[valid_mask].astype(np.float64)
-    truth = np.clip(target[valid_mask].astype(np.float64), 1e-6, None)
+    pred = prediction[evaluation_mask].astype(np.float64)
+    truth = target[evaluation_mask].astype(np.float64)
+    safe_pred = np.clip(pred, 1e-6, None)
     abs_rel = np.mean(np.abs(pred - truth) / truth)
+    sq_rel = np.mean((pred - truth) ** 2 / truth)
+    mae = np.mean(np.abs(pred - truth))
     rmse = np.sqrt(np.mean((pred - truth) ** 2))
-    ratio = np.maximum(pred / truth, truth / np.clip(pred, 1e-6, None))
-    delta1 = np.mean(ratio < 1.25)
-    return {"abs_rel": float(abs_rel), "rmse": float(rmse), "delta1": float(delta1)}
+    ratio = np.maximum(safe_pred / truth, truth / safe_pred)
+    spearman = spearmanr(pred, truth).statistic if np.std(pred) and np.std(truth) else 0.0
+    return {
+        "mae": float(mae),
+        "rmse": float(rmse),
+        "abs_rel": float(abs_rel),
+        "sq_rel": float(sq_rel),
+        "delta1": float(np.mean(ratio < 1.25)),
+        "delta2": float(np.mean(ratio < 1.25**2)),
+        "delta3": float(np.mean(ratio < 1.25**3)),
+        "spearman": float(spearman) if np.isfinite(spearman) else 0.0,
+    }
 
 
 def compute_error_map(prediction: np.ndarray, target: np.ndarray, valid_mask: np.ndarray) -> np.ndarray:
     error_map = np.zeros_like(target, dtype=np.float32)
-    safe_target = np.clip(target, 1e-6, None)
-    error_map[valid_mask] = np.abs(prediction[valid_mask] - safe_target[valid_mask]) / safe_target[valid_mask]
+    evaluation_mask = _evaluation_mask(prediction, target, valid_mask)
+    error_map[evaluation_mask] = np.abs(prediction[evaluation_mask] - target[evaluation_mask]) / target[evaluation_mask]
     return error_map

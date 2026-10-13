@@ -14,7 +14,12 @@ def write_manifest(pairs, path: Path, split: str) -> None:
 
 def write_summary(records: list[dict], output_dir: Path) -> None:
     causes = Counter(region["top_cause"] for record in records for region in record["regions"])
-    metrics = {name: float(np.mean([record["metrics"][name] for record in records])) for name in ("abs_rel", "rmse", "delta1")} if records else {}
+    metric_names = ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
+    metrics = {
+        name: float(np.mean([record["metrics"][name] for record in records if name in record["metrics"]]))
+        for name in metric_names
+        if records and all(name in record["metrics"] for record in records)
+    }
     summary = {
         "num_samples": len(records),
         "num_regions": sum(record["num_regions"] for record in records),

@@ -139,6 +139,29 @@ uv run veo-nyu run-model --config configs/nyu.yaml --output-dir outputs/nyu_real
 
 The NYU profile enables scale-shift alignment because `Depth-Anything-V2-Small-hf` is the official relative-depth checkpoint. Use the official metric-Hypersim checkpoint only with the Hypersim profile.
 
+The Hugging Face relative checkpoint emits an inverse-depth-like representation. The NYU profile therefore fits scale and shift in inverse-depth space and inverts the result before calculating metric errors. This is different from the official metric checkpoint, which is evaluated directly in metres.
+
+For the complete original NYU labeled dataset, first materialize the deterministic scene partitions, then run all three partitions:
+
+```powershell
+uv run veo-nyu prepare-nyu-splits --mat-path data/nyu/nyu_depth_v2_labeled.mat --output-dir data/nyu/splits
+uv run veo-nyu evaluate-splits --config configs/nyu.yaml --split-root data/nyu/splits --output-dir outputs/nyu_evaluation --device cpu
+```
+
+Use `--limit 3` for a quick CPU check. The full labeled file contains 1,449 aligned original RGB/depth samples; the current deterministic scene split contains 1,009 development, 196 validation, and 244 test samples.
+
+Run the alignment-space ablation with one model inference per image:
+
+```powershell
+uv run veo-nyu compare-alignment `
+	--config configs/nyu.yaml `
+	--split-root data/nyu/splits `
+	--output-dir outputs/alignment_ablation `
+	--device cpu
+```
+
+Each split writes `alignment_ablation.json` containing `none`, `direct_depth_scale_shift`, `inverse_depth_scale_shift`, and `inverse_depth_scale_only`. Every protocol reports MAE, RMSE, AbsRel, SqRel, delta1/2/3, Spearman correlation, fitted scale, and scale sign. Run with `--limit 1` or `--limit 3` before the full experiment.
+
 ## Classifier validation status
 
 The NYU-tuned baseline now uses boundary depth gradients, configurable signal scales, and an `ambiguous` class when leading scores are weak or too close. On the first 10 real NYU samples, 151 regions produced 68 ambiguous, 66 high-confidence, and 17 medium-confidence classifications. This prevents unsupported forced labels, but it is not human validation. Use `veo_nyu.validation.cohens_kappa` with independent expert labels and `ablation_change` to report agreement and signal contribution.

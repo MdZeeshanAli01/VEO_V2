@@ -9,6 +9,8 @@ dataset:
 experiment:
   model_name: depth_anything_v2_relative_small
   align_scale_shift: true
+  prediction_space: inverse_depth
+  primary_protocol: inverse_depth_scale_shift
   error_percentile: 85.0
   min_region_area: 25
   include_reflection: true
