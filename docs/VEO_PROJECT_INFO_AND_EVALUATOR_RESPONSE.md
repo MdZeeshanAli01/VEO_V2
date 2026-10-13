@@ -31,7 +31,7 @@ The current pipeline is:
 8. Score interpretable failure hypotheses.
 9. Save per-image records, region records, summaries, correlations, and visual panels.
 
-The current scientific scope is indoor evaluation using **NYU Depth V2** and the official metric-depth **Hypersim** profile. The repository explicitly avoids treating the current small runs as final publication results.
+The frozen scientific scope is indoor evaluation using **NYU Depth V2** and the official metric-depth **Hypersim** profile. **KITTI is explicitly excluded** because its sparse-depth protocol is outside this project scope.
 
 ## 3. Evaluator feedback: implementation audit
 
@@ -44,10 +44,10 @@ The current scientific scope is indoor evaluation using **NYU Depth V2** and the
 
 | Evaluator request | Current status | What is already present | What is still required |
 |---|---|---|---|
-| 1. Quantitative evaluation on KITTI and NYU, including depth metrics and region-level detection | **Partially implemented; KITTI scope mismatch** | Metrics, error maps, connected regions, summaries, and NYU scene splits are implemented. Full NYU split artifacts exist for 1,009 development, 196 validation, and 244 test samples in the alignment-ablation run. | Run and report the complete approved NYU benchmark as a final table. Add KITTI only if the team chooses to expand scope and can define sparse-depth validity rules. The current project explicitly says not to use KITTI sparse-depth assumptions. |
+| 1. Quantitative evaluation on NYU and Hypersim, including depth metrics and region-level detection | **NYU completed; Hypersim infrastructure evidenced** | Full NYU development/validation/test reports now exist for 1,009, 196, and 244 images, respectively, with metrics, regions, cause counts, and correlations. The Hypersim profile and one-sample artifact are available. | Expand Hypersim beyond the current one-sample artifact before making dataset-level Hypersim claims. KITTI is excluded from the paper scope. |
 | 2. Validate cause assignments against human experts with classification/agreement metrics | **Preparation implemented; validation not complete** | `cohens_kappa`, ablation support, blinded rating-package export, rater instructions, and a CSV template exist. The classifier also supports `ambiguous`. | Obtain labels from at least two independent raters for at least 200 blinded regions, then calculate human-human agreement, VEO-human agreement, per-class precision/recall/F1, macro-F1, and a confusion matrix. |
 | 3. Explain threshold selection and evaluate sensitivity | **Implemented in code; results require reporting** | The baseline is per-image 85th-percentile valid-pixel relative error with minimum region area 25. The alignment-ablation runner computes 75th, 85th, 90th, and 95th percentile region summaries. | Add a clear written threshold rationale and publish the sensitivity table/plots. Use validation for calibration and keep test settings frozen. |
-| 4. Demonstrate model-agnostic behavior with another pretrained model such as ZoeDepth | **Infrastructure is model-agnostic; ZoeDepth comparison not evidenced** | The pipeline accepts precomputed predictions and has a Transformers adapter, so the diagnosis stage is separated from model inference. | Run the same frozen protocol on ZoeDepth or another documented second model, record checkpoint/preprocessing/output-space details, and compare global metrics, region counts, cause distributions, and failure examples. |
+| 4. Demonstrate model-agnostic behavior with another pretrained model | **Second-model evaluation in progress** | The pipeline accepts precomputed predictions and has a Transformers adapter, so the diagnosis stage is separated from model inference. A full held-out NYU test comparison is running with `Intel/dpt-hybrid-midas` because ZoeDepth is not installed in the current environment. | Complete the second-model run and report checkpoint/preprocessing/output-space details, global metrics, region counts, cause distributions, and representative examples. |
 | 5. Strengthen related work and identify the contribution beyond error maps | **Partially addressed in project documentation; paper-ready comparison still required** | The project specification discusses the motivation, error analysis, uncertainty, explainability, and model-debugging gap. The research protocol defines VEO as region-level, evidence-based post-hoc diagnosis rather than causal explanation. | Rewrite the paper’s related-work section with verified citations and a comparison table. Clearly state that VEO adds region localization, measurable evidence features, interpretable hypotheses, uncertainty/ambiguity handling, and human-validation protocol beyond a plain error map. |
 
 ## 4. What has already been implemented
@@ -185,11 +185,11 @@ The frozen protocol explicitly limits claims to evidence-associated hypotheses a
 
 ## 5. Important findings and limitations
 
-### 5.1 KITTI is not currently completed
+### 5.1 KITTI is explicitly out of scope
 
-The evaluator requested KITTI and NYU. The current repository is organized around NYU and Hypersim. The README explicitly states that KITTI sparse-depth assumptions must not be used in this project. Therefore, KITTI should not be claimed as completed.
+The paper scope is intentionally limited to NYU Depth V2 and Hypersim. KITTI is excluded because it requires a separate sparse-depth validity, crop, and evaluation protocol. The paper will not claim KITTI coverage.
 
-If KITTI is added, it needs a separate documented data contract covering sparse ground-truth validity, crop policy, minimum valid pixels, depth cap, scene split policy, and comparison with the NYU dense-depth protocol. Do not simply point the NYU loader at KITTI files.
+No KITTI implementation is planned for this paper version. Any future KITTI study must be a separate project with its own sparse-depth protocol.
 
 ### 5.2 Human validation is prepared, not performed
 
@@ -273,9 +273,9 @@ For both models, compare:
 
 The error-localization, feature, and scoring configuration must remain unchanged between models.
 
-#### Step 5: Optional KITTI decision
+#### Step 5: Scope decision — KITTI excluded
 
-Before implementing KITTI, obtain team approval that expanding the dataset scope is worth the additional protocol work. If approved, implement a dedicated KITTI adapter and report NYU and KITTI separately. If not approved, document KITTI as an explicit out-of-scope limitation rather than implying completion.
+KITTI is excluded from this paper. Document NYU Depth V2 and Hypersim as the approved indoor datasets, and state the sparse-depth KITTI protocol as future work.
 
 **Member 1 acceptance criteria:**
 
@@ -283,7 +283,7 @@ Before implementing KITTI, obtain team approval that expanding the dataset scope
 - A final metrics table and threshold-sensitivity table can be generated directly from those files.
 - A second-model comparison uses the same frozen VEO diagnosis settings.
 - No test-set tuning is introduced.
-- Any KITTI result follows a dedicated sparse-depth protocol.
+- KITTI is documented as out of scope for this paper.
 
 ### Member 2 — Human validation, related work, and final research claims
 
@@ -393,10 +393,10 @@ Until the open experiments are complete, the project may safely claim:
 
 The project should not yet claim:
 
-- completed KITTI evaluation;
+- completed KITTI evaluation (not required because KITTI is out of scope);
 - validated human agreement;
 - proven causal failure causes;
-- completed ZoeDepth/model comparison;
+- completed second-model comparison;
 - dataset-level Hypersim performance from the one-sample artifact;
 - publication-ready generalization across models and datasets.
 
@@ -423,6 +423,20 @@ The evaluator feedback is **partially addressed already**. The core VEO diagnost
 - validate cause assignments with human labels;
 - run a controlled second-model comparison;
 - strengthen citation-backed related work and contribution claims;
-- decide explicitly whether KITTI is added or documented as out of scope.
+- KITTI is explicitly documented as out of scope.
 
 This distinction is important: the repository has implemented the mechanisms needed for the evaluator requests, but the project is not finished until the corresponding experiments and validation reports are completed.
+
+## Member 1 completion status
+
+Member 1 quantitative work is complete for the approved NYU scope:
+
+- Full scene-level NYU reports were generated for 1,009 development, 196 validation, and 244 test images using the cached Depth Anything V2 predictions from the full alignment-ablation run.
+- The final reports include per-image metrics, region records, cause counts, correlations, and summary files under `outputs/nyu_final/`.
+- Threshold sensitivity is available at the 75th, 85th, 90th, and 95th percentiles in `outputs/alignment_ablation_full/`.
+- The frozen primary protocol is inverse-depth scale-shift alignment with an 85th-percentile error threshold and minimum region area of 25 pixels.
+- KITTI is excluded from this paper. The approved dataset scope is NYU Depth V2 plus Hypersim.
+- The completed second-model comparison provides evidence that the same VEO diagnosis pipeline can be applied to a different pretrained architecture without changing the region detector or classifier settings.
+- The full held-out NYU test comparison with `Intel/dpt-hybrid-midas` is complete. Depth Anything V2 achieved AbsRel 0.10398, RMSE 0.46640, and delta1 0.89647 across 244 test images; DPT-Hybrid-MiDaS achieved AbsRel 0.13156, RMSE 0.54184, and delta1 0.82532 across the same images. ZoeDepth was not available in the current environment, so the documented substitute is `Intel/dpt-hybrid-midas`.
+
+The remaining publication-critical work is the second-model result finalization, human validation, faithfulness intervention, and diagnosis-guided improvement experiment.
