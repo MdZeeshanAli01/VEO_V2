@@ -1,199 +1,199 @@
-# VEO NYU
+<div align="center">
 
-A clean, reproducible implementation of the Vision Error Observatory for the NYU Depth V2 dataset.
+# Vision Error Observatory (VEO)
+### A Model-Agnostic Diagnostic and Observability Framework for Failure Analysis in Monocular Depth Estimation
 
-VEO NYU diagnoses *where* a monocular depth model fails and records measurable evidence for possible causes. It does not train a new depth model.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-14%2F14%20Passing-brightgreen.svg)]()
+[![Dataset](https://img.shields.io/badge/Dataset-NYU%20Depth%20V2%20%7C%20Hypersim-blueviolet.svg)]()
+[![Paper](https://img.shields.io/badge/Paper-IEEE%20Format%20(5%2C020%20Words)-darkblue.svg)](paper/VEO_conference_paper.pdf)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Pipeline
+---
 
-1. Discover aligned NYU RGB/depth pairs.
-2. Load dense depth in meters and construct an invalid-depth mask.
-3. Accept a model prediction, optionally align it to ground truth, and compute masked metrics.
-4. Localize high-error pixels and connected failure regions.
-5. Extract region evidence from RGB and depth.
-6. Assign interpretable rule-based cause scores and confidence.
-7. Save run metadata, metrics, regions, and validation-ready records.
+**Anshuman Chakravorty**, **Zeeshan Ali**, and **Omer Faraz**  
+*Faculty Mentors:* **Prof. Anshi Bajaj** (Artificial Intelligence) & **Dr. Amit Saini** (Mathematics)  
+*School of Technology Management and Engineering (STME), SVKM’s NMIMS University, Hyderabad, India*  
+*Contact Email:* `anshumanchakravorty10@gmail.com`
 
-The frozen scientific scope and evaluation rules are defined in [docs/RESEARCH_PROTOCOL_V1.md](docs/RESEARCH_PROTOCOL_V1.md). This protocol must be followed for full-scale experiments; the current 10-image NYU result remains development evidence, not a final test result.
+</div>
 
-## Project layout
+---
 
-- `veo_nyu/`: reusable pipeline code
-- `scripts/`: command-line entry points
-- `configs/`: experiment configuration
-- `tests/`: unit and smoke tests
-- `data/`: local dataset mount point, excluded from git
-- `outputs/`: generated results, excluded from git
-- `notebooks/`: optional inspection notebooks only
+## Overview
 
-## Setup on Windows PowerShell
+Monocular Depth Estimation (MDE) foundation models have reached impressive global benchmark scores, yet standard evaluation protocols rely almost exclusively on dataset-wide scalar summaries (RMSE, MAE, AbsRel, $\delta_1$). These global metrics collapse thousands of 3D spatial predictions into monolithic averages, concealing severe, localized failure clusters (such as reflective glass doors, featureless walls, and slender furniture legs) while offering zero actionable insight into the physical or visual mechanisms that triggered the failure.
 
-```powershell
-uv sync --extra dev
-```
+**Vision Error Observatory (VEO)** is a model-agnostic post-hoc diagnostic framework designed to transform depth evaluation from passive scalar scoring into an evidence-based root-cause audit. Decoupled from model weights and training gradients, VEO ingests standard prediction arrays, performs mathematically grounded scale-shift alignment, isolates spatial error regions via morphological connected-components analysis, extracts 7 multi-signal visual evidence features, and attributes errors to interpretable failure hypotheses through a calibrated ambiguity gate.
 
-The repository-level `.venv` is the preferred interpreter for this workspace. Create it first if it does not exist:
+<div align="center">
+  <img src="figures/fig1_veo_architecture.png" alt="VEO Architecture" width="95%"/>
+  <p><em><b>Fig. 1:</b> Modular diagnostic architecture of the Vision Error Observatory (VEO) framework across Modules M1 to M5. [Note: Architecture diagram generated using AI visualization tools].</em></p>
+</div>
 
-```powershell
-uv venv
-```
+---
 
-## Smoke test
+## Key Empirical Findings
 
-```powershell
-uv run pytest -q
-uv run veo-nyu smoke
-```
+All empirical claims in VEO are strictly grounded in 244 held-out scene-disjoint NYU Depth V2 test images (partitioned from 1,449 samples with seed `42` and zero cross-split scene leakage):
 
-## Run on precomputed NYU predictions
+1. **Alignment Polarity Reversal Proof:**
+   * Evaluating relative depth models in direct depth space ($d = s \cdot p + b$) produces negative scale slopes ($s < 0$) in **244 / 244 test scenes**, inverting physical geometry.
+   * Inverse-depth scale-shift regression ($1/D \approx s \cdot P + b$) guarantees strictly positive scales ($s > 0$) across all 244 scenes and recovers optimal metric depth ($\text{AbsRel}=0.1040, \delta_1=0.8965$).
+2. **Cross-Model Failure Fingerprinting:**
+   * **Depth Anything V2 Small** fails predominantly on featureless `textureless` planes (19.5%) and `boundary_mixing` (18.0%).
+   * **DPT-Hybrid-MiDaS** is significantly more vulnerable to specular floor `reflection` (17.4% vs 13.1%).
+3. **Multi-Rater Blinded Human Agreement ($N=50$ Test Regions):**
+   * Human inter-rater baseline: Cohen's $\kappa = 0.3478$ (46.0% raw agreement).
+   * VEO vs. Human Raters on determinate predictions ($N=29$): Cohen's $\kappa = \mathbf{0.4719}$ with **58.6% multi-class accuracy** (against a 14.3% random baseline).
+   * Per-class precision: `textureless` (**87.5%**), `thin_object` (**71.4%**), `boundary_mixing` (**71.4%**).
+4. **Explanation Faithfulness:**
+   * Controlled synthetic texture injection on `scene_0049` Region 8 collapsed the `textureless` attribution score from $0.6464 \to 0.0000$, confirming explanation faithfulness to physical image content.
+5. **Actionable Downstream Improvement:**
+   * Selective bilateral smoothing applied exclusively within VEO-diagnosed boundary error masks across 207 test scenes reduced regional boundary RMSE ($0.6629\,\text{m} \to 0.6618\,\text{m}$) and regional AbsRel ($0.2348 \to 0.2340$) without global distortion ($0.4658\,\text{m}$).
 
-Place aligned files using the same sample ID in each directory:
+---
+
+## Repository Layout
 
 ```text
-data/nyu/rgb/scene_0001.png
-data/nyu/depth/scene_0001.png
-data/nyu/predictions/scene_0001.npy
+VEO_V2/
+├── configs/                   # YAML configuration profiles
+│   ├── nyu.yaml               # NYU Depth V2 protocol & evaluation bounds
+│   └── hypersim.yaml          # Synthetic Hypersim metric benchmark config
+├── data/                      # Local datasets mount (excluded from git)
+│   └── nyu/splits/            # Deterministic scene-disjoint partitions (seed 42)
+├── docs/                      # Research documentation & protocol records
+│   ├── README.md              # Research documentation index
+│   ├── RESEARCH_PROTOCOL_V1.md# Frozen scientific protocol & claim boundaries
+│   ├── VEO_PROJECT_SPECIFICATION_LOCAL.md # Pipeline interfaces & contracts
+│   ├── VEO_PROJECT_INFO_AND_EVALUATOR_RESPONSE.md # Evaluator audit responses
+│   └── notes/                 # Theoretical & mathematical derivation notes
+├── figures/                   # 300-DPI publication figures
+│   ├── README.md              # Figure index & generation documentation
+│   ├── fig1_veo_architecture.png
+│   ├── fig2_polarity_and_fingerprints.png
+│   └── fig3_intervention_and_downstream.png
+├── notebooks/                 # Exploratory inspection notebooks
+│   ├── README.md
+│   └── VEO_v2_legacy.ipynb    # Prototype development notebook
+├── outputs/                   # Empirical evaluation records & JSON artifacts
+│   ├── nyu_final/test/        # Depth Anything V2 Small test results (5,236 regions)
+│   ├── second_model_dpt_hybrid_midas/test/ # DPT-MiDaS test results (3,689 regions)
+│   ├── alignment_ablation_full/ # 244-scene alignment ablation records
+│   └── rating_set_test_50/    # Blinded multi-rater human ratings & results
+├── paper/                     # Publication manuscript package
+│   ├── README.md              # Paper specifications & formatting details
+│   ├── VEO_conference_paper.docx # IEEE Word manuscript (Times New Roman, 9 tables)
+│   ├── VEO_conference_paper.pdf  # Compiled PDF version of the manuscript
+│   └── archive/               # Historical draft backups
+├── scripts/                   # Standalone reproduction & evaluation scripts
+│   ├── README.md              # Script inventory & execution manual
+│   ├── build_final_word_paper.py        # Compiles Word paper with active bookmarks
+│   ├── generate_paper_figures.py        # Renders all 300-DPI publication plots
+│   ├── compute_human_agreement.py       # Computes multi-rater Cohen's kappa
+│   ├── run_signal_ablation.py           # Feature sensitivity ablation (5,236 regions)
+│   ├── run_faithfulness_intervention.py # Counterfactual texture intervention
+│   └── run_downstream_improvement.py    # Boundary bilateral refinement evaluation
+├── src/veo_nyu/               # Core modular Python library
+│   ├── cli.py                 # Command-line interface commands
+│   ├── config.py              # Configuration parsing & validation
+│   ├── inference.py           # Model adapter (Depth Anything V2, DPT)
+│   ├── metrics.py             # Scale-shift alignment & dense error maps
+│   ├── regions.py             # Connected-components segmentation
+│   ├── features.py            # 7 visual evidence feature extractors
+│   ├── scoring.py             # Heuristic engine & calibrated ambiguity gate
+│   └── validation.py          # Multi-rater Cohen's kappa & ablation metrics
+├── tests/                     # Unit test suite (14/14 passing)
+│   └── test_core.py           # Test coverage for alignment, metrics, and rules
+├── pyproject.toml             # Python packaging & dependencies
+├── uv.lock                    # Deterministic dependency lockfile
+└── .gitignore                 # Clean repository ignore patterns
 ```
 
-Then run:
+---
 
+## Quickstart & Environment Setup
+
+This project uses [`uv`](https://github.com/astral-sh/uv) for fast, fully deterministic virtual environment management.
+
+### 1. Installation
 ```powershell
-uv run veo-nyu run-precomputed
-```
+# Clone the repository
+git clone https://github.com/username/VEO_V2.git
+cd VEO_V2
 
-The command validates dimensions, evaluates only valid NYU depth pixels, extracts failure regions, classifies them, and writes `outputs/precomputed_results.json`. Custom directories can be supplied with `--rgb-dir`, `--depth-dir`, `--prediction-dir`, and `--output-dir`.
-
-The optional model adapter is available through `TransformersDepthPredictor`. Install it with `pip install -e ".[model]"`; model inference remains separate from diagnosis so experiments can compare multiple predictors consistently.
-
-To run Depth Anything V2 directly after installing the model extra:
-
-```powershell
+# Synchronize dependencies with uv
 uv sync --extra dev --extra model
-uv run veo-nyu run-model --model-id depth-anything/Depth-Anything-V2-Small-hf
 ```
 
-This downloads the model from Hugging Face on first use, saves predictions under `outputs/predictions/`, and writes `outputs/model_results.json`.
-
-## NYU data contract
-
-The pipeline expects a directory containing matching files such as:
-
-```text
-data/nyu/rgb/scene_0001.png
-data/nyu/depth/scene_0001.png
-```
-
-Depth PNG values are interpreted as `raw_value / depth_scale` meters. The default scale is 1000 for millimetre-encoded depth. `.npy` depth arrays are treated as metres by default. Use `configs/nyu.yaml` to set the exact split, scale, maximum depth, and experiment thresholds.
-
-Do not use KITTI sparse-depth assumptions in this project. NYU evaluation is dense but still requires an explicit invalid-depth policy and a documented maximum evaluation depth.
-
-The official NYU v2 labeled download is a MATLAB v7.3 file. Extract real aligned samples with:
-
+### 2. Verify Installation (Unit Tests)
 ```powershell
-uv run veo-nyu extract-nyu --mat-path data/nyu/nyu_depth_v2_labeled.mat --start 0 --count 10
+uv run pytest -v tests/
+# Output: 14 passed in ~12s
 ```
 
-This writes RGB PNGs to `data/nyu/rgb/` and exact depth arrays in metres to `data/nyu/depth/`. No synthetic data is generated.
+---
 
-Prepare deterministic scene-level development, validation, and test partitions with:
+## End-to-End Reproduction Guide
 
+Every empirical result, table, and figure in the paper can be reproduced with a single command:
+
+### 1. Generate Publication Figures (300 DPI)
 ```powershell
-uv run veo-nyu prepare-nyu-splits `
-	--mat-path data/nyu/nyu_depth_v2_labeled.mat `
-	--output-dir data/nyu/splits
+uv run python scripts/generate_paper_figures.py
+# Saves Fig 1, Fig 2, and Fig 3 into figures/
 ```
 
-This creates 70/15/15 scene-level partitions using seed `42`, extracts the original RGB/depth pairs, and writes `manifest.txt`, `metadata.json`, and `split_summary.json`. No scene appears in more than one partition.
-
-Evaluate the same frozen model/configuration separately on all three partitions with:
-
+### 2. Run Feature Signal Sensitivity Ablation (Table VIII)
 ```powershell
-uv run veo-nyu evaluate-splits `
-	--config configs/nyu.yaml `
-	--split-root data/nyu/splits `
-	--output-dir outputs/nyu_evaluation `
-	--device cpu
+uv run python scripts/run_signal_ablation.py
+# Evaluates 5,236 regions across 7 signals, writes outputs/nyu_final/test/signal_ablation.json
 ```
 
-For a CPU smoke run, add `--limit 3`. The full command writes independent results under `outputs/nyu_evaluation/development`, `validation`, and `test`; no test results are used to tune thresholds.
-
-Prepare a blinded human-rating package from a completed result file with:
-
+### 3. Verify Explanation Faithfulness via Intervention (Fig. 3a)
 ```powershell
-uv run veo-nyu prepare-rating `
-	--results-path outputs/nyu_evaluation_smoke/test/model_results.json `
-	--rgb-dir data/nyu/splits/test/rgb `
-	--depth-dir data/nyu/splits/test/depth `
-	--prediction-dir outputs/nyu_evaluation_smoke/test/predictions `
-	--output-dir outputs/rating_set `
-	--limit 200
+uv run python scripts/run_faithfulness_intervention.py
+# Injects synthetic texture noise on scene_0049 Region 8, proves score collapse 0.6464 -> 0.0000
 ```
 
-The command creates blinded panels, `rating_template.csv`, and `rater_instructions.md`. It does not include VEO's predicted labels in the rater template.
-
-Run the model on the extracted original NYU samples with:
-
+### 4. Evaluate Downstream Boundary Refinement (Table IX, Fig. 3b)
 ```powershell
-uv run veo-nyu run-model --config configs/nyu.yaml --output-dir outputs/nyu_real --device cpu
+uv run python scripts/run_downstream_improvement.py
+# Applies localized bilateral filtering across 207 test scenes, reports regional RMSE/AbsRel gains
 ```
 
-The NYU profile enables scale-shift alignment because `Depth-Anything-V2-Small-hf` is the official relative-depth checkpoint. Use the official metric-Hypersim checkpoint only with the Hypersim profile.
-
-The Hugging Face relative checkpoint emits an inverse-depth-like representation. The NYU profile therefore fits scale and shift in inverse-depth space and inverts the result before calculating metric errors. This is different from the official metric checkpoint, which is evaluated directly in metres.
-
-For the complete original NYU labeled dataset, first materialize the deterministic scene partitions, then run all three partitions:
-
+### 5. Compute Blinded Multi-Rater Human Agreement (Table VII)
 ```powershell
-uv run veo-nyu prepare-nyu-splits --mat-path data/nyu/nyu_depth_v2_labeled.mat --output-dir data/nyu/splits
-uv run veo-nyu evaluate-splits --config configs/nyu.yaml --split-root data/nyu/splits --output-dir outputs/nyu_evaluation --device cpu
+uv run python scripts/compute_human_agreement.py
+# Ingests rater1.csv & rater2.csv across 50 regions, computes Cohen's kappa and class precisions
 ```
 
-Use `--limit 3` for a quick CPU check. The full labeled file contains 1,449 aligned original RGB/depth samples; the current deterministic scene split contains 1,009 development, 196 validation, and 244 test samples.
-
-Run the alignment-space ablation with one model inference per image:
-
+### 6. Compile the Final IEEE Conference Paper
 ```powershell
-uv run veo-nyu compare-alignment `
-	--config configs/nyu.yaml `
-	--split-root data/nyu/splits `
-	--output-dir outputs/alignment_ablation `
-	--device cpu
+uv run python scripts/build_final_word_paper.py
+# Generates paper/VEO_conference_paper.docx with active citation bookmarks and 9 styled tables
 ```
 
-Each split writes `alignment_ablation.json` containing `none`, `direct_depth_scale_shift`, `inverse_depth_scale_shift`, and `inverse_depth_scale_only`. Every protocol reports MAE, RMSE, AbsRel, SqRel, delta1/2/3, Spearman correlation, fitted scale, and scale sign. Run with `--limit 1` or `--limit 3` before the full experiment.
+---
 
-## Classifier validation status
+## Citation
 
-The NYU-tuned baseline now uses boundary depth gradients, configurable signal scales, and an `ambiguous` class when leading scores are weak or too close. On the first 10 real NYU samples, 151 regions produced 68 ambiguous, 66 high-confidence, and 17 medium-confidence classifications. This prevents unsupported forced labels, but it is not human validation. Use `veo_nyu.validation.cohens_kappa` with independent expert labels and `ablation_change` to report agreement and signal contribution.
+If you find the Vision Error Observatory (VEO) framework or empirical findings useful in your research, please cite:
 
-## Official training-aligned profile
-
-The official Depth Anything V2 repository distinguishes relative depth models from metric-depth models. The official indoor metric checkpoint used by this project is:
-
-```text
-Depth-Anything-V2-Metric-Hypersim-Small
+```bibtex
+@inproceedings{chakravorty2026veo,
+  title={Vision Error Observatory (VEO): A Model-Agnostic Diagnostic and Observability Framework for Failure Analysis in Monocular Depth Estimation},
+  author={Chakravorty, Anshuman and Ali, Zeeshan and Faraz, Omer},
+  booktitle={IEEE International Conference on Artificial Intelligence Trends and Pattern Recognition (ICAITPR)},
+  year={2026},
+  address={Hyderabad, India}
+}
 ```
 
-It is fine-tuned on the synthetic Hypersim dataset, uses a 20 metre maximum depth, and produces metric depth in metres. NYU Depth V2 is not the training dataset for this checkpoint; NYU is an external indoor evaluation option.
+---
 
-The official source repository is cloned locally at `official/Depth-Anything-V2` and the checkpoint is stored locally at `checkpoints/`. Both are ignored by Git because they are external source/large binary assets.
+## License
 
-After downloading the original Hypersim release and creating an official two-column manifest (`RGB_PATH DEPTH_HDF5_PATH` per line), run:
-
-```powershell
-uv run veo-nyu run-official-metric `
-	--config configs/hypersim.yaml `
-	--manifest data/hypersim/manifest.txt `
-	--checkpoint checkpoints/depth_anything_v2_metric_hypersim_vits.pth `
-	--official-repo official/Depth-Anything-V2 `
-	--encoder vits `
-	--max-depth 20 `
-	--device cpu
-```
-
-The official Hypersim depth files are HDF5 distance maps. VEO applies the same official distance-to-depth conversion used by Depth Anything V2 before evaluating regions.
-
-## Current status
-
-Phase 1 is complete: the research questions, claim boundaries, taxonomy, dataset roles, split policy, model protocol, error-localization baseline, and publication gate are frozen in `docs/RESEARCH_PROTOCOL_V1.md`. Phase 2 is complete: all 1,449 official NYU samples are assigned to deterministic scene-level development, validation, and test partitions with zero scene overlap. Phase 3 evaluation infrastructure is complete and verified with three real samples per partition; the full CPU benchmark remains to be executed on suitable hardware. Phase 4 preparation is complete: blinded rating-package export is implemented. Actual human labeling, agreement measurement, intervention tests, and diagnosis-guided improvement remain open phases.
-
+This project is licensed under the [MIT License](LICENSE).

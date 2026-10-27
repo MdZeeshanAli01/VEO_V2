@@ -1,0 +1,234 @@
+"""
+Vision Error Observatory (VEO) - High-Performance Local HTTP Server
+Features:
+- Seamless byte-range support (HTTP 206 Partial Content) for smooth MP4 video playback & seeking
+- Comprehensive MIME type mapping (mp4, css, js, json, svg, pdf, woff2, ico)
+- Fallback route aliases for legacy links (/figures/*, /paper/* -> /assets/*)
+- Automatic port fallback (8000 -> 8001 -> 8080) if port is in use
+- Zero external dependencies; runs on standard library
+"""
+
+import http.server
+import socketserver
+import webbrowser
+import os
+import re
+import sys
+from pathlib import Path
+from urllib.parse import unquote
+
+DEFAULT_PORT = 8000
+DIRECTORY = Path(__file__).parent.resolve()
+
+class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
+    extensions_map = {
+        **http.server.SimpleHTTPRequestHandler.extensions_map,
+        ".js": "application/javascript",
+        ".mjs": "application/javascript",
+        ".css": "text/css",
+        ".json": "application/json",
+        ".mp4": "video/mp4",
+        ".svg": "image/svg+xml",
+        ".pdf": "application/pdf",
+        ".ico": "image/x-icon",
+        ".woff2": "font/woff2",
+        ".woff": "font/woff",
+        ".ttf": "font/ttf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(DIRECTORY), **kwargs)
+
+    def do_HEAD(self):
+        self.handle_request(head_only=True)
+
+    def do_GET(self):
+        self.handle_request(head_only=False)
+
+    def handle_request(self, head_only: bool = False):
+        # Decode clean path
+        clean_path = unquote(self.path.split("?")[0].split("#")[0])
+
+        # Route root to /index.html
+        if clean_path in ("/", ""):
+            self.send_response(302)
+            self.send_header("Location", "/index.html")
+            self.end_headers()
+            return
+
+        # Fallback aliases to prevent 404s on legacy or cached links
+        if clean_path.startswith("/figures/"):
+            filename = clean_path[len("/figures/"):]
+            target = DIRECTORY / "assets" / filename
+            if target.exists():
+                self.serve_file(target, head_only=head_only)
+                return
+
+        if clean_path.startswith("/paper/"):
+            filename = clean_path[len("/paper/"):]
+            target = DIRECTORY / "assets" / filename
+            if target.exists():
+                self.serve_file(target, head_only=head_only)
+                return
+
+        if clean_path == "/favicon.ico":
+            fav = DIRECTORY / "favicon.ico"
+            if not fav.exists():
+                fav = DIRECTORY / "assets" / "favicon.ico"
+            if fav.exists():
+                self.serve_file(fav, head_only=head_only)
+                return
+
+        # Universal Font Fallback: intercepts any request for .woff2, .woff, .ttf, or fa-*
+        clean_name = Path(clean_path).name
+        if clean_path.endswith((".woff2", ".woff", ".ttf")) or "fa-" in clean_path or "webfonts" in clean_path:
+            candidates = [
+                DIRECTORY / "assets" / "webfonts" / clean_name,
+                DIRECTORY / "assets" / "fontawesome" / "webfonts" / clean_name,
+                DIRECTORY / "webfonts" / clean_name,
+                DIRECTORY / clean_name,
+                DIRECTORY / "assets" / "webfonts" / clean_name.replace(".ttf", ".woff2"),
+                DIRECTORY / "assets" / "fontawesome" / "webfonts" / clean_name.replace(".ttf", ".woff2"),
+                DIRECTORY / "webfonts" / clean_name.replace(".ttf", ".woff2"),
+                DIRECTORY / clean_name.replace(".ttf", ".woff2"),
+            ]
+            for candidate in candidates:
+                if candidate.is_file():
+                    self.serve_file(candidate, head_only=head_only)
+                    return
+
+        # Handle regular files with byte-range support for videos
+        target = (DIRECTORY / clean_path.lstrip("/")).resolve()
+        
+        # Security: verify path is within DIRECTORY
+        try:
+            target.relative_to(DIRECTORY)
+        except ValueError:
+            self.send_error(403, "Access denied")
+            return
+
+        if target.is_file():
+            self.serve_file(target, head_only=head_only)
+        else:
+            if head_only:
+                super().do_HEAD()
+            else:
+                super().do_GET()
+
+    def serve_file(self, filepath: Path, head_only: bool = False):
+        file_size = filepath.stat().st_size
+        content_type = self.guess_type(str(filepath))
+        range_header = self.headers.get("Range")
+
+        if range_header and range_header.startswith("bytes="):
+            # Parse Range: bytes=start-end
+            range_match = re.match(r"bytes=(\d+)-(\d*)", range_header)
+            if range_match:
+                start = int(range_match.group(1))
+                end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
+                end = min(end, file_size - 1)
+                
+                if start > end or start >= file_size:
+                    self.send_response(416, "Requested Range Not Satisfiable")
+                    self.send_header("Content-Range", f"bytes */{file_size}")
+                    self.end_headers()
+                    return
+
+                length = end - start + 1
+                self.send_response(206, "Partial Content")
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+                self.send_header("Content-Length", str(length))
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+                self.send_header("Pragma", "no-cache")
+                self.send_header("Expires", "0")
+                self.end_headers()
+
+                if not head_only:
+                    try:
+                        with open(filepath, "rb") as f:
+                            f.seek(start)
+                            bytes_remaining = length
+                            chunk_size = 64 * 1024
+                            while bytes_remaining > 0:
+                                read_len = min(bytes_remaining, chunk_size)
+                                data = f.read(read_len)
+                                if not data:
+                                    break
+                                self.wfile.write(data)
+                                bytes_remaining -= len(data)
+                    except (ConnectionError, OSError):
+                        pass
+                return
+
+        # Full file delivery
+        self.send_response(200, "OK")
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(file_size))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        self.end_headers()
+
+        if not head_only:
+            try:
+                with open(filepath, "rb") as f:
+                    chunk_size = 64 * 1024
+                    while True:
+                        data = f.read(chunk_size)
+                        if not data:
+                            break
+                        self.wfile.write(data)
+            except (ConnectionError, OSError):
+                pass
+
+    def log_message(self, format, *args):
+        # Clean terminal logging with timestamps and response codes
+        code = args[1] if len(args) > 1 else "-"
+        sys.stdout.write(f"[{self.log_date_time_string()}] HTTP {code} - {args[0]}\n")
+        sys.stdout.flush()
+
+
+def find_available_port(start_port=8000, max_attempts=10):
+    import socket
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+    return start_port
+
+
+def main():
+    os.chdir(DIRECTORY)
+    port = find_available_port(DEFAULT_PORT)
+    url = f"http://localhost:{port}/index.html"
+    
+    print("=" * 74)
+    print("    VISION ERROR OBSERVATORY (VEO) - INTERACTIVE PLATFORM SERVER")
+    print("=" * 74)
+    print(f"  Root Directory : {DIRECTORY}")
+    print(f"  URL            : {url}")
+    print(f"  Port           : {port}")
+    print(f"  Status         : Ready (Zero-Warning, Offline-Optimized)")
+    print("=" * 74)
+    print("  Serving assets: CSS (Precompiled), Chart.js (Local), FontAwesome, Video")
+    print("  Opening browser automatically... Press Ctrl+C to stop.")
+    print("=" * 74 + "\n")
+
+    webbrowser.open(url)
+
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    with socketserver.ThreadingTCPServer(("", port), VEORequestHandler) as httpd:
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nShutting down server. Goodbye!")
+
+
+if __name__ == "__main__":
+    main()
