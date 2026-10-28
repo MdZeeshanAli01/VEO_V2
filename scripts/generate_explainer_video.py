@@ -104,7 +104,7 @@ def main():
                 ("Traditional Metrics (RMSE / MAE):", "Give only scalar scores — they cannot answer WHERE or WHY a model failed."),
                 ("Feature Saliency (Grad-CAM / RISE):", "Highlight internal neural activations, NOT physical geometric failure causes."),
                 ("The Polarity Reversal Trap:", "Naive direct regression inverts physical 3D geometry (s < 0 in 244/244 test scenes)."),
-                ("Black-Box Diagnosis:", "No prior framework bridges dense error localization with interpretable cause attribution.")
+                ("Black-Box Diagnosis:", "Dense error localization is rarely paired with interpretable, per-region cause hypotheses.")
             ],
             "callout": (
                 "THE RESEARCH GAP:",
@@ -119,11 +119,11 @@ def main():
             "title": "SCENE 3: THE VISION ERROR OBSERVATORY (VEO)",
             "subtitle": "A Model-Agnostic 5-Stage Diagnostic & Observability Framework",
             "bullets": [
-                ("Module M1 (Inverse Alignment):", "Fits scale-shift in 1/D space; mathematically guarantees s > 0 positive polarity."),
+                ("Module M1 (Inverse Alignment):", "Fits scale-shift in 1/D space, matching disparity output (s > 0 in 244/244 scenes)."),
                 ("Module M2 (Dense Error Maps):", "Computes dense relative residuals |D_pred - D_gt| / D_gt across all valid metric pixels."),
                 ("Module M3 (Region Segmentation):", "Adaptive 85th-percentile error thresholding with 8-connectivity morphological clustering."),
                 ("Module M4 (7 Evidence Signals):", "Extracts Texture Variance, Canny Edge Density, Brightness, Contrast, Highlights, AR, and Discontinuity."),
-                ("Module M5 (Cause Attribution):", "Domain-calibrated heuristic rules with a Calibrated Ambiguity Gate (margin Delta >= 0.10).")
+                ("Module M5 (Cause Attribution):", "Hand-set rule-based scores with an ambiguity gate (abstain if top < 0.40 or margin < 0.10).")
             ],
             "callout": (
                 "THE VEO SOLUTION:",
@@ -135,17 +135,17 @@ def main():
         # Slide 4: Empirical Validation Proofs
         {
             "header_bg": c_green,
-            "title": "SCENE 4: SCIENTIFIC VALIDATION & PROVEN IMPACT",
-            "subtitle": "Ground-Truthed Across 244 Held-Out Scene-Disjoint NYU Depth V2 Test Scenes",
+            "title": "SCENE 4: V1 RESULTS AND LIMITATIONS",
+            "subtitle": "244 NYU Depth V2 Test Images (custom scene-disjoint split)",
             "bullets": [
-                ("Blinded Multi-Rater Human Agreement:", "Cohen's kappa = 0.4719 with 58.6% multi-class accuracy (vs 14.3% random baseline)."),
-                ("High Structural Precision:", "87.5% precision on textureless surfaces, 71.4% on boundary mixing and thin objects."),
-                ("Explanation Faithfulness Verified:", "Synthetic texture injection collapsed textureless error scores from 0.6464 -> 0.0000."),
-                ("Downstream Actionability:", "VEO-guided bilateral edge refinement reduced boundary RMSE and AbsRel (+0.35%) across 207 scenes.")
+                ("Human Agreement (N=50):", "kappa vs VEO = 0.26 / 0.14, accuracy 36%; inter-rater kappa = 0.35."),
+                ("Where VEO Commits (29/50):", "58.6% accuracy vs 41.4% majority baseline. Textureless 7/8 correct, reflection 0/7."),
+                ("Scoring Sanity Check:", "Adding noise drops the textureless score 0.646 -> 0.000; checks the formula, not the model."),
+                ("Oracle Boundary Filtering:", "-0.35% regional AbsRel over 207 scenes, using ground-truth masks (not deployable).")
             ],
             "callout": (
-                "VERIFIED SCIENTIFIC RESULTS:",
-                "VEO is not another depth model—it is a proven, publication-ready diagnostic suite for model auditing and debugging.",
+                "WORK IN PROGRESS:",
+                "VEO's localization works; its cause labels need calibration and larger validation (v2 in progress).",
                 c_blue, (240, 245, 255)
             ),
             "duration_sec": 7
@@ -159,8 +159,8 @@ def main():
                 ("Step 1 (Select a Scene):", "Choose from NYU Depth V2 test scenes (Office, Living Room, Hallway)."),
                 ("Step 2 (View 4 Synchronized Views):", "Compare RGB Image, Depth Anything V2 Output, Ground Truth Depth, and Error Heatmaps."),
                 ("Step 3 (Click Any Error Region):", "Isolate bounding boxes, zoom into crops, and inspect all 7 extracted visual evidence signals."),
-                ("Step 4 (Inspect Real-Time Math):", "Watch the heuristic formulas calculate scores and trigger the Calibrated Ambiguity Gate live."),
-                ("Step 5 (Test Faithfulness):", "Click 'Inject Synthetic Texture' to see the explanation shift dynamically before your eyes!")
+                ("Step 4 (Inspect Real-Time Math):", "Watch the heuristic formulas calculate scores and trigger the ambiguity gate live."),
+                ("Step 5 (Edit the Evidence):", "Click 'Inject Synthetic Texture' to see how the rule-based scores respond.")
             ],
             "callout": (
                 "READY TO EXPLORE:",
