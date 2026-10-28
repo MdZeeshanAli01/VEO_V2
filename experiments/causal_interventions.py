@@ -17,6 +17,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from veo.checkpoint import JsonlLog, resumed
 from veo.config import config_from_dict
 from veo.data import RGBDepthPair, load_rgb
 from veo.interventions import (
@@ -29,6 +30,7 @@ from veo.interventions import (
     region_error,
 )
 from veo.pipeline import compute_regions
+from veo.provenance import config_hash
 from veo.reports import write_result
 from veo.runner import load_sample
 
@@ -112,7 +114,16 @@ def main() -> None:
     predict = make_predictor(args.model_id, args.device)
     space = config.experiment.prediction_space if config.experiment.align_scale_shift else "depth"
     changes: dict[tuple[str, str, int], dict] = {}
-    for sample_id, wanted in sorted(jobs.items()):
+    log = JsonlLog(args.output.with_suffix(".checkpoint.jsonl"), config_hash({
+        "results": str(args.results_path), "model": args.model_id, "scale": args.scale, "seed": args.seed,
+        "per_test": args.per_test, "config": payload["config"], "jobs": {k: sorted(v) for k, v in jobs.items()},
+    }))
+    finished = log.load()
+    for sample_id, entries in finished.items():
+        for entry in entries:
+            changes[(entry["edit"], sample_id, entry["region_id"])] = entry["result"]
+    for sample_id in resumed(sorted(jobs), set(finished)):
+        wanted = jobs[sample_id]
         pair = RGBDepthPair(sample_id, split_dir / "rgb" / f"{sample_id}.png", split_dir / "depth" / f"{sample_id}.npy")
         rgb = load_rgb(pair.rgb_path)
         _, target, dense, valid = load_sample(pair, config)
@@ -132,6 +143,7 @@ def main() -> None:
             before = region_error(original, target, valid, mask, space, config.experiment.max_prediction_m)
             after = region_error(edited, target, valid, mask, space, config.experiment.max_prediction_m)
             changes[(edit, sample_id, region_id)] = {"before": before, "after": after, "change": after - before}
+        log.append(sample_id, [{"edit": edit, "region_id": region_id, "result": changes[(edit, sample_id, region_id)]} for edit, region_id in sorted(wanted)])
 
     tests = {}
     for name, pairs in pairs_by_test.items():

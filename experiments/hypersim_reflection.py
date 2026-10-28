@@ -11,19 +11,21 @@ For each frame the model sees the original render and the same render without it
 """
 
 import argparse
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 
 import numpy as np
 from scipy.stats import spearmanr
 from sklearn.metrics import roc_auc_score
 
+from veo.checkpoint import JsonlLog, resumed
 from veo.config import load_config
 from veo.data import make_valid_mask
 from veo.hypersim import REFLECTIVE_NYU40, ensure_metadata, fetch_frames, load_frame, select_frames
 from veo.interventions import match_controls, paired_statistics, region_error
 from veo.metrics import align_scale_shift, compute_metrics
 from veo.pipeline import analyze_sample, compute_regions
+from veo.provenance import config_hash
 from veo.reports import write_result
 
 SPECULAR_STRONG = 10.0  # mean grey levels of specular light in a region
@@ -79,12 +81,23 @@ def main() -> None:
     reflective_ids = list(REFLECTIVE_NYU40)
 
     rows, images = [], []
-    for scene, camera, frame in frames:
+    log = JsonlLog(args.output.with_suffix(".checkpoint.jsonl"), config_hash({
+        "model": args.model_id, "experiment": asdict(experiment), "max_depth": args.max_depth, "frames": frames,
+    }))
+    finished = log.load()
+    for entry in finished.values():
+        images.extend(entry["images"])
+        rows.extend(entry["rows"])
+    names = {f"{scene}/{camera}/{frame}": (scene, camera, frame) for scene, camera, frame in frames}
+    for name in resumed(list(names), set(finished)):
+        scene, camera, frame = names[name]
         sample = load_frame(args.cache, scene, camera, frame)
         depth = sample["depth"]
         valid = make_valid_mask(depth, args.max_depth)
         if valid.mean() < 0.5:
+            log.append(name, {"images": [], "rows": []})
             continue
+        image_start, row_start = len(images), len(rows)
         original, diffuse = predictor.predict(sample["rgb"]), predictor.predict(sample["rgb_diffuse"])
         before_metrics = compute_metrics(align_scale_shift(original, depth, valid, space, args.max_depth)[0], depth, valid)
         after_metrics = compute_metrics(align_scale_shift(diffuse, depth, valid, space, args.max_depth)[0], depth, valid)
@@ -105,6 +118,7 @@ def main() -> None:
                 "log_depth": float(np.log(max(region["features"]["mean_depth_m"], 0.1))),
                 "before": before, "after": after, "change": after - before,
             })
+        log.append(name, {"images": images[image_start:], "rows": rows[row_start:]})
         print(f"  {scene} {camera} {frame}: {analysis['num_regions']} regions, AbsRel {before_metrics['abs_rel']:.4f} -> {after_metrics['abs_rel']:.4f}", flush=True)
 
     targets = [row for row in rows if row["top_cause"] == "reflection"]

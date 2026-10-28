@@ -13,24 +13,31 @@ from pathlib import Path
 import numpy as np
 
 from veo.calibration import evaluate, fit, public_models
+from veo.checkpoint import JsonlLog, resumed
 from veo.config import config_from_dict
 from veo.data import RGBDepthPair
 from veo.pipeline import compute_regions
+from veo.provenance import config_hash
 from veo.reports import write_result
 from veo.runner import load_sample
 from veo.silver import SILVER_CATEGORIES, class_ids, region_silver, silver_maps
 
 
-def build_rows(results_path: Path) -> tuple[list[dict], dict]:
+def build_rows(results_path: Path, checkpoint: Path | None = None) -> tuple[list[dict], dict]:
+    """Silver-labelled rows for every region; with ``checkpoint``, finished images are logged and skipped on resume."""
     payload = json.loads(results_path.read_text(encoding="utf-8"))
     config = config_from_dict(payload["config"])
     split_dir = config.dataset.depth_dir.parent
     prediction_dir = results_path.parent / "predictions"
     groups = class_ids(json.loads((split_dir / "label_names.json").read_text(encoding="utf-8")))
     scenes = {record["sample_id"]: record["scene"] for record in json.loads((split_dir / "metadata.json").read_text(encoding="utf-8"))}
-    rows = []
-    for record in payload["records"]:
-        sample_id = record["sample_id"]
+    log = JsonlLog(checkpoint, config_hash({"results": str(results_path), "config": payload["config"]})) if checkpoint else None
+    finished = log.load() if log else {}
+    rows = [row for sample_rows in finished.values() for row in sample_rows]
+    records = {record["sample_id"]: record for record in payload["records"]}
+    for sample_id in resumed(list(records), set(finished)):
+        record = records[sample_id]
+        sample_rows = []
         pair = RGBDepthPair(sample_id, split_dir / "rgb" / f"{sample_id}.png", split_dir / "depth" / f"{sample_id}.npy")
         _, target, dense, valid = load_sample(pair, config)
         computed = compute_regions(target, np.load(prediction_dir / f"{sample_id}.npy"), valid, config.experiment)
@@ -46,7 +53,7 @@ def build_rows(results_path: Path) -> tuple[list[dict], dict]:
             groups,
         )
         for region_id, region in stored.items():
-            rows.append({
+            sample_rows.append({
                 "sample_id": sample_id,
                 "scene": scenes.get(sample_id, sample_id),
                 "region_id": region_id,
@@ -56,6 +63,9 @@ def build_rows(results_path: Path) -> tuple[list[dict], dict]:
                 "labels": region["labels"],
                 "silver": region_silver(maps, recomputed[region_id]["mask"]),
             })
+        rows.extend(sample_rows)
+        if log:
+            log.append(sample_id, sample_rows)
     return rows, payload["config"]["experiment"]
 
 
@@ -76,8 +86,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    train_rows, settings = build_rows(args.train_results)
-    test_rows, _ = build_rows(args.test_results)
+    train_rows, settings = build_rows(args.train_results, args.output.with_name(args.output.stem + "_train.checkpoint.jsonl"))
+    test_rows, _ = build_rows(args.test_results, args.output.with_name(args.output.stem + "_test.checkpoint.jsonl"))
     models = fit(train_rows)
     payload = {
         "train": {"regions": len(train_rows), "silver_counts": dict(Counter(label for row in train_rows for label in row["silver"]["labels"]))},

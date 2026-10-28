@@ -193,7 +193,9 @@ def _render_set(results_path: Path, wanted: dict[tuple[str, int], dict], images_
         for (sample_id, region_id), item in wanted.items():
             if sample_id != record["sample_id"]:
                 continue
-            render_item(sample, masks[region_id], images_dir / f"{item['id']}_context.jpg", images_dir / f"{item['id']}_detail.jpg")
+            context, detail = images_dir / f"{item['id']}_context.jpg", images_dir / f"{item['id']}_detail.jpg"
+            if not (context.exists() and detail.exists()):
+                render_item(sample, masks[region_id], context, detail)
             if maps is not None:
                 silver = region_silver(maps, masks[region_id])
                 item["silver_labels"], item["silver_shares"] = silver["labels"], silver["shares"]
@@ -201,10 +203,9 @@ def _render_set(results_path: Path, wanted: dict[tuple[str, int], dict], images_
 
 def build_study(test_results: Path, output_dir: Path, train_results: Path | None = None, per_stratum: int = 40,
                 random_count: int = 60, practice_count: int = 20, max_per_image: int = 3, seed: int = 42) -> dict:
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
+    # Item ids are seeded, so a rebuild reuses images already rendered by an interrupted run
     images_dir = output_dir / "images"
-    images_dir.mkdir(parents=True)
+    images_dir.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
 
     def new_id() -> str:
@@ -246,6 +247,10 @@ def build_study(test_results: Path, output_dir: Path, train_results: Path | None
         "practice": list(practice.values()),
     }
     # Kept outside the folder sent to raters so VEO's outputs cannot be seen
+    referenced = {Path(entry[key]).name for entry in tool_data["items"] + tool_data["practice"] for key in ("context", "detail")}
+    for image in images_dir.iterdir():
+        if image.name not in referenced:
+            image.unlink()  # left over from a study built with other settings
     manifest_path = output_dir.parent / f"{output_dir.name}_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return {"output_dir": output_dir, "manifest": manifest_path, "items": len(items), "practice": len(practice)}

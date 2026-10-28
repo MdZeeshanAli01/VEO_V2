@@ -29,6 +29,28 @@ def download_nyu(destination: Path, url: str = NYU_LABELED_URL, splits_url: str 
         print(f"sha256 {file_sha256(target)}  {target.name}")
 
 
+def run_with_retries(work, retries: int, wait_seconds: float) -> None:
+    """Run ``work(attempt)``; after an error, wait and run it again (checkpoints make this a resume).
+
+    Covers transient failures such as a dropped connection. Ctrl+C stops immediately; after a
+    shutdown, running the same command again resumes from the checkpoints.
+    """
+    import time
+
+    for attempt in range(1, retries + 2):
+        try:
+            work(attempt)
+            return
+        except KeyboardInterrupt:
+            raise
+        except Exception as error:  # noqa: BLE001 - any failure is retried; checkpoints keep finished work
+            if attempt > retries:
+                raise
+            print(f"Run failed ({type(error).__name__}: {error}). Resuming in {wait_seconds:.0f} s "
+                  f"(attempt {attempt + 1} of {retries + 1}).", flush=True)
+            time.sleep(wait_seconds)
+
+
 def run_smoke() -> None:
     height, width = 48, 64
     rng = np.random.default_rng(42)
@@ -84,22 +106,30 @@ def main() -> None:
     parser.add_argument("--per-stratum", type=int, default=40)
     parser.add_argument("--random-count", type=int, default=60)
     parser.add_argument("--practice-count", type=int, default=20)
+    parser.add_argument("--fresh", action="store_true", help="reproduce: discard results and analysis checkpoints first")
+    parser.add_argument("--retries", type=int, default=3, help="reproduce: resume automatically this many times after an error")
+    parser.add_argument("--retry-wait", type=float, default=60.0, help="reproduce: seconds to wait before resuming")
     parser.add_argument("--rater1", type=Path)
     parser.add_argument("--rater2", type=Path)
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
     elif args.command == "reproduce":
-        reproduce(
-            args.workdir,
-            args.config,
-            fixture=args.fixture,
-            mat_path=args.mat_path,
-            model_ids=tuple(args.models or [args.model_id]),
-            rater1=args.rater1,
-            rater2=args.rater2,
-            device=args.device,
-            seed=args.seed,
+        run_with_retries(
+            lambda attempt: reproduce(
+                args.workdir,
+                args.config,
+                fixture=args.fixture,
+                mat_path=args.mat_path,
+                model_ids=tuple(args.models or [args.model_id]),
+                rater1=args.rater1,
+                rater2=args.rater2,
+                device=args.device,
+                seed=args.seed,
+                fresh=args.fresh and attempt == 1,  # retries resume rather than start over
+            ),
+            args.retries,
+            args.retry_wait,
         )
     elif args.command == "download-nyu":
         download_nyu(args.mat_path)

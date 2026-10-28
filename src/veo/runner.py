@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .checkpoint import RecordStore, atomic_save_npy, atomic_write_text, load_npy
 from .config import Config
 from .data import (
     RGBDepthPair,
@@ -22,7 +23,7 @@ from .inference import (
 )
 from .metrics import align_scale_only, align_scale_shift, compute_error_map, compute_metrics
 from .pipeline import align_prediction, analyze_sample
-from .provenance import provenance
+from .provenance import config_hash, provenance
 from .regions import extract_failure_regions
 from .reports import write_correlations, write_summary
 from .visualization import save_panel
@@ -70,28 +71,46 @@ def run_pairs(
     save_predictions: bool = False,
     max_depth_m: float | None = None,
     save_panels: bool = True,
+    resume: bool = True,
 ) -> list[dict]:
-    """Analyze every pair and write results JSON, summary, region CSV, correlations and panels."""
+    """Analyze every pair and write results JSON, summary, region CSV, correlations and panels.
+
+    Each image's record is checkpointed as soon as it is done, and saved predictions are reused, so an
+    interrupted run continues where it stopped. Checkpoints made with other settings are ignored.
+    """
     output_dir = config.outputs.directory
     prediction_dir = output_dir / "predictions"
     if save_predictions:
         prediction_dir.mkdir(parents=True, exist_ok=True)
+    key = config_hash({"config": asdict(config), "metadata": metadata, "max_depth_m": max_depth_m})
+    store = RecordStore(output_dir / "checkpoints" / Path(results_name).stem, key)
     records = []
-    for pair in pairs:
-        rgb, target, dense, valid_mask = load_sample(pair, config, max_depth_m)
-        prediction = predict(pair, rgb, target.shape)
-        if save_predictions:
-            np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
-        result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment, geometry_depth=dense)
-        records.append({"sample_id": pair.sample_id, **result})
-        if not save_panels:
-            continue
-        # Panels show the same aligned prediction the analysis used, not the raw model output
-        aligned, _, _ = align_prediction(prediction, target, valid_mask & np.isfinite(prediction), config.experiment)
-        save_panel(rgb, target, aligned, compute_error_map(aligned, target, valid_mask), output_dir / "panels" / f"{pair.sample_id}.png", pair.sample_id)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    reused = 0
+    for index, pair in enumerate(pairs, start=1):
+        record = store.get(pair.sample_id) if resume else None
+        if record is None:
+            rgb, target, dense, valid_mask = load_sample(pair, config, max_depth_m)
+            cached = load_npy(prediction_dir / f"{pair.sample_id}.npy") if save_predictions and resume else None
+            if cached is not None and cached.shape == target.shape:
+                prediction = cached.astype(np.float32)
+            else:
+                prediction = predict(pair, rgb, target.shape)
+                if save_predictions:
+                    atomic_save_npy(prediction_dir / f"{pair.sample_id}.npy", prediction)
+            result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment, geometry_depth=dense)
+            record = {"sample_id": pair.sample_id, **result}
+            if save_panels:
+                # Panels show the same aligned prediction the analysis used, not the raw model output
+                aligned, _, _ = align_prediction(prediction, target, valid_mask & np.isfinite(prediction), config.experiment)
+                save_panel(rgb, target, aligned, compute_error_map(aligned, target, valid_mask), output_dir / "panels" / f"{pair.sample_id}.png", pair.sample_id)
+            store.put(pair.sample_id, record)
+        else:
+            reused += 1
+        records.append(record)
+        if index % 100 == 0 or index == len(pairs):
+            print(f"      {index}/{len(pairs)} images" + (f" ({reused} from checkpoints)" if reused else ""), flush=True)
     payload = {**metadata, "config": asdict(config), "provenance": provenance(config), "records": records}
-    (output_dir / results_name).write_text(json.dumps(payload, default=str, indent=2), encoding="utf-8")
+    atomic_write_text(output_dir / results_name, json.dumps(payload, default=str, indent=2))
     write_summary(records, output_dir)
     write_correlations(records, output_dir / "correlations.csv")
     return records
@@ -112,11 +131,18 @@ def run_model(config: Config, model_id: str, device: str = "auto", limit: int | 
     pairs = _pairs(config)
     if limit is not None:
         pairs = pairs[:limit]
-    predictor = TransformersDepthPredictor(model_id, device)
+    loaded = {}
+
+    def predict(pair, rgb, shape):
+        # Loaded on first use, so a resumed run with every prediction cached never loads the model
+        if "model" not in loaded:
+            loaded["model"] = TransformersDepthPredictor(model_id, device)
+        return loaded["model"].predict(rgb)
+
     return run_pairs(
         config,
         pairs,
-        lambda pair, rgb, shape: predictor.predict(rgb),
+        predict,
         "model_results.json",
         {"model_id": model_id},
         save_predictions=True,
@@ -265,13 +291,14 @@ def run_alignment_ablation(
     records = []
     prediction_dir = config.outputs.directory / "predictions"
     prediction_dir.mkdir(parents=True, exist_ok=True)
+    store = RecordStore(config.outputs.directory / "checkpoints" / "alignment_ablation", config_hash({"config": asdict(config), "protocols": protocols}))
 
     def append_record(pair, rgb, target, valid_mask, prediction):
         protocol_results = {
             protocol: _evaluate_alignment_protocol(prediction, target, valid_mask, protocol, config.experiment.max_prediction_m)
             for protocol in protocols
         }
-        records.append({
+        record = {
             "sample_id": pair.sample_id,
             "scene": scene_lookup.get(pair.sample_id, pair.sample_id),
             "protocols": protocol_results,
@@ -285,16 +312,22 @@ def run_alignment_ablation(
                     config.experiment.max_prediction_m,
                 ),
             },
-        })
+        }
+        store.put(pair.sample_id, record)
+        records.append(record)
 
     pending = []
     for pair in pairs:
+        stored = store.get(pair.sample_id)
+        if stored is not None:
+            records.append(stored)
+            continue
         rgb, target, _, valid_mask = load_sample(pair, config)
-        cached_path = prediction_dir / f"{pair.sample_id}.npy"
-        if cached_path.exists():
-            prediction = np.asarray(np.load(cached_path), dtype=np.float32)
+        cached = load_npy(prediction_dir / f"{pair.sample_id}.npy")
+        if cached is not None:
+            prediction = cached.astype(np.float32)
             if prediction.shape != target.shape:
-                raise ValueError(f"Cached prediction {cached_path} has shape {prediction.shape}; expected {target.shape}")
+                raise ValueError(f"Cached prediction for {pair.sample_id} has shape {prediction.shape}; expected {target.shape}")
             append_record(pair, rgb, target, valid_mask, prediction)
         else:
             pending.append((pair, rgb, target, valid_mask))
@@ -309,7 +342,7 @@ def run_alignment_ablation(
         else:
             predictions = [predictor.predict(rgb) for rgb in rgb_batch]
         for (pair, rgb, target, valid_mask), prediction in zip(batch, predictions, strict=True):
-            np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
+            atomic_save_npy(prediction_dir / f"{pair.sample_id}.npy", prediction)
             append_record(pair, rgb, target, valid_mask, prediction)
     metric_names = ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
     summary = {}
@@ -374,5 +407,5 @@ def run_alignment_ablation(
         "region_comparison": region_comparison,
         "causal_claims": False,
     }
-    (output_dir / "alignment_ablation.json").write_text(json.dumps(payload, default=str, indent=2), encoding="utf-8")
+    atomic_write_text(output_dir / "alignment_ablation.json", json.dumps(payload, default=str, indent=2))
     return payload
