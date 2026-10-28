@@ -78,5 +78,6 @@ def test_prepare_rating_then_human_agreement(monkeypatch, fixture_run, tmp_path)
 def test_download_nyu_skips_existing_file(tmp_path, capsys):
     target = tmp_path / "nyu.mat"
     target.write_bytes(b"not really a mat file")
-    cli.download_nyu(target, url="http://invalid.example/never-fetched")
-    assert "sha256" in capsys.readouterr().out
+    (tmp_path / "splits.mat").write_bytes(b"nor this")
+    cli.download_nyu(target, url="http://invalid.example/never", splits_url="http://invalid.example/never")
+    assert capsys.readouterr().out.count("sha256") == 2

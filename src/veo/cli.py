@@ -7,6 +7,7 @@ import numpy as np
 
 from .config import Config, DatasetConfig, ExperimentConfig, OutputConfig, load_config
 from .data import discover_manifest, discover_pairs, validate_pairs
+from .download import NYU_LABELED_URL, NYU_SPLITS_URL, download_file
 from .nyu_dataset import create_scene_splits, extract_labeled_mat, extract_split
 from .pipeline import analyze_sample
 from .reports import write_manifest
@@ -14,24 +15,18 @@ from .reproduce import reproduce
 from .runner import run_alignment_ablation, run_model, run_official_metric, run_precomputed
 from .validation import export_rating_set
 
-NYU_LABELED_URL = "http://horatio.cs.nyu.edu/mit/silberman/nyu_depth_v2/nyu_depth_v2_labeled.mat"
 
-
-def download_nyu(destination: Path, url: str = NYU_LABELED_URL) -> None:
-    """Download the official NYU Depth V2 labelled set (about 2.8 GB) and print its SHA-256."""
-    import urllib.request
-
+def download_nyu(destination: Path, url: str = NYU_LABELED_URL, splits_url: str = NYU_SPLITS_URL) -> None:
+    """Download the NYU Depth V2 labelled set (about 3 GB) and its official train/test split; print SHA-256s."""
     from .provenance import file_sha256
 
-    if destination.exists():
-        print(f"Already present: {destination}")
-    else:
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        partial = destination.with_suffix(".part")
-        print(f"Downloading {url} -> {destination}")
-        urllib.request.urlretrieve(url, partial)
-        partial.rename(destination)
-    print(f"sha256 {file_sha256(destination)}")
+    for source, target in ((url, destination), (splits_url, destination.with_name("splits.mat"))):
+        if target.exists():
+            print(f"Already present: {target}")
+        else:
+            print(f"Downloading {source} -> {target}", flush=True)
+            download_file(source, target)
+        print(f"sha256 {file_sha256(target)}  {target.name}")
 
 
 def run_smoke() -> None:
