@@ -45,7 +45,7 @@ def test_metrics_use_only_valid_pixels():
     valid = np.array([[True, True], [False, True]])
     metrics = compute_metrics(prediction, target, valid)
     assert np.isclose(metrics["abs_rel"], 2.0 / 3.0)
-    assert set(("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3")) <= metrics.keys()
+    assert {"mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3"} <= metrics.keys()
 
 
 def test_metrics_ignore_nonfinite_predictions():

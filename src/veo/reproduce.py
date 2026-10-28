@@ -109,7 +109,7 @@ def reproduce(
             run_pairs(
                 config,
                 pairs,
-                lambda pair, rgb, shape: predictor.predict(rgb, load_depth(pair.depth_path, config.dataset.depth_scale)),
+                lambda pair, rgb, shape, predictor=predictor, scale=config.dataset.depth_scale: predictor.predict(rgb, load_depth(pair.depth_path, scale)),
                 "model_results.json",
                 {"model_id": model_id},
                 save_predictions=True,

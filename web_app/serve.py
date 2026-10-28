@@ -9,11 +9,11 @@ Features:
 """
 
 import http.server
-import socketserver
-import webbrowser
 import os
 import re
+import socketserver
 import sys
+import webbrowser
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -189,7 +189,7 @@ def main():
     print(f"  Root Directory : {DIRECTORY}")
     print(f"  URL            : {url}")
     print(f"  Port           : {port}")
-    print(f"  Status         : Ready (Zero-Warning, Offline-Optimized)")
+    print("  Status         : Ready (Zero-Warning, Offline-Optimized)")
     print("=" * 74)
     print("  Serving assets: CSS (Precompiled), Chart.js (Local), FontAwesome, Video")
     print("  Opening browser automatically... Press Ctrl+C to stop.")

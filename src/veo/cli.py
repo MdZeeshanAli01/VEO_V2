@@ -14,7 +14,6 @@ from .reproduce import reproduce
 from .runner import run_alignment_ablation, run_model, run_official_metric, run_precomputed
 from .validation import export_rating_set
 
-
 NYU_LABELED_URL = "http://horatio.cs.nyu.edu/mit/silberman/nyu_depth_v2/nyu_depth_v2_labeled.mat"
 
 

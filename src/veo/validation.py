@@ -29,7 +29,7 @@ def cohens_kappa(first: list[str], second: list[str]) -> float:
         raise ValueError("Both label lists must be non-empty and have equal length")
     total = len(first)
     categories = set(first) | set(second)
-    observed = sum(left == right for left, right in zip(first, second)) / total
+    observed = sum(left == right for left, right in zip(first, second, strict=True)) / total
     first_counts = Counter(first)
     second_counts = Counter(second)
     expected = sum((first_counts[label] / total) * (second_counts[label] / total) for label in categories)
@@ -52,7 +52,7 @@ def per_class_report(reference: list[str], predicted: list[str]) -> dict[str, di
     classes = sorted(set(reference) | set(predicted))
     report = {}
     for label in classes:
-        true_positive = sum(r == label and p == label for r, p in zip(reference, predicted))
+        true_positive = sum(r == label and p == label for r, p in zip(reference, predicted, strict=True))
         predicted_count = sum(p == label for p in predicted)
         support = sum(r == label for r in reference)
         precision = true_positive / predicted_count if predicted_count else 0.0
@@ -79,10 +79,10 @@ def agreement_report(reference: list[str], predicted: list[str], abstain_label: 
         raise ValueError("reference and predicted must be non-empty and have equal length")
     total = len(reference)
     per_class = per_class_report(reference, predicted)
-    committed = [(r, p) for r, p in zip(reference, predicted) if p != abstain_label]
+    committed = [(r, p) for r, p in zip(reference, predicted, strict=True) if p != abstain_label]
     report = {
         "n": total,
-        "accuracy": sum(r == p for r, p in zip(reference, predicted)) / total,
+        "accuracy": sum(r == p for r, p in zip(reference, predicted, strict=True)) / total,
         "kappa": cohens_kappa(reference, predicted),
         "macro_f1": float(np.mean([row["f1"] for row in per_class.values()])),
         "per_class": per_class,
@@ -160,10 +160,14 @@ def export_rating_set(
         x, y, width, height = region["bbox"]
         slices = (slice(y, y + height), slice(x, x + width))
         figure, axes = plt.subplots(1, 4, figsize=(12, 3))
-        axes[0].imshow(rgb[slices]); axes[0].set_title("RGB")
-        axes[1].imshow(depth[slices], cmap="magma"); axes[1].set_title("Ground truth")
-        axes[2].imshow(prediction[slices], cmap="magma"); axes[2].set_title("Prediction (aligned)")
-        axes[3].imshow(error[slices], cmap="inferno"); axes[3].set_title("Relative error")
+        axes[0].imshow(rgb[slices])
+        axes[0].set_title("RGB")
+        axes[1].imshow(depth[slices], cmap="magma")
+        axes[1].set_title("Ground truth")
+        axes[2].imshow(prediction[slices], cmap="magma")
+        axes[2].set_title("Prediction (aligned)")
+        axes[3].imshow(error[slices], cmap="inferno")
+        axes[3].set_title("Relative error")
         for axis in axes:
             axis.axis("off")
         panel_path = panel_dir / f"rating_{rating_index:04d}.png"

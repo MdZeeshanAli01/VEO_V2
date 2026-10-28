@@ -57,7 +57,7 @@ class TransformersDepthPredictor:
         results = self._pipe([Image.fromarray(rgb) for rgb in rgb_images], batch_size=batch_size)
         return [
             self._prediction_from_result(result, rgb.shape[:2])
-            for result, rgb in zip(results, rgb_images)
+            for result, rgb in zip(results, rgb_images, strict=True)
         ]
 
 

@@ -286,7 +286,7 @@ def run_alignment_ablation(
             predictions = predictor.predict_batch(rgb_batch, batch_size=4)
         else:
             predictions = [predictor.predict(rgb) for rgb in rgb_batch]
-        for (pair, rgb, target), prediction in zip(batch, predictions):
+        for (pair, rgb, target), prediction in zip(batch, predictions, strict=True):
             np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
             append_record(pair, rgb, target, prediction)
     metric_names = ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")

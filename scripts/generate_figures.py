@@ -1,8 +1,9 @@
 import json
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import numpy as np
 from pathlib import Path
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Set academic font style
 plt.rcParams['font.sans-serif'] = 'DejaVu Sans'
@@ -35,7 +36,6 @@ def generate_fig1_architecture():
     # Color Palette (Publication Grade)
     c_bg = '#F8FAFC'
     c_card = '#FFFFFF'
-    c_border = '#CBD5E1'
     c_primary = '#1E3A8A'     # Deep Navy
     c_m1 = '#0369A1'          # Sky Blue
     c_m2 = '#0D9488'          # Teal
@@ -85,7 +85,7 @@ def generate_fig1_architecture():
 
     # Arrow 0 -> M1
     ax.annotate("", xy=(3.2, 6.1), xytext=(2.8, 6.1),
-                arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
+                arrowprops={'arrowstyle': "->", 'color': '#334155', 'lw': 2})
 
     # 2. MODULE M1: Scale-Shift Depth Alignment (Column 2)
     draw_box(3.2, 3.8, 2.7, 4.6, c_card, c_m1, "M1: SCALE-SHIFT ALIGNMENT")
@@ -104,7 +104,7 @@ def generate_fig1_architecture():
 
     # Arrow M1 -> M2
     ax.annotate("", xy=(6.3, 6.1), xytext=(5.9, 6.1),
-                arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
+                arrowprops={'arrowstyle': "->", 'color': '#334155', 'lw': 2})
 
     # 3. MODULE M2: Dense Error Computation (Column 3)
     draw_box(6.3, 3.8, 2.7, 4.6, c_card, c_m2, "M2: DENSE ERROR MAPS")
@@ -123,7 +123,7 @@ def generate_fig1_architecture():
 
     # Arrow M2 -> M3
     ax.annotate("", xy=(9.4, 6.1), xytext=(9.0, 6.1),
-                arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
+                arrowprops={'arrowstyle': "->", 'color': '#334155', 'lw': 2})
 
     # 4. MODULE M3: Spatial Region Segmentation (Column 4)
     draw_box(9.4, 3.8, 2.9, 4.6, c_card, c_m3, "M3: REGION SEGMENTATION")
@@ -143,7 +143,7 @@ def generate_fig1_architecture():
 
     # Arrow M3 -> M4
     ax.annotate("", xy=(12.7, 6.1), xytext=(12.3, 6.1),
-                arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
+                arrowprops={'arrowstyle': "->", 'color': '#334155', 'lw': 2})
 
     # 5. MODULE M4: Multi-Signal Evidence Extraction (Column 5)
     draw_box(12.7, 3.8, 2.8, 4.6, c_card, c_m4, "M4: EVIDENCE EXTRACTION")
@@ -165,7 +165,7 @@ def generate_fig1_architecture():
 
     # Arrow from M4 down to M5
     ax.annotate("", xy=(14.1, 3.2), xytext=(14.1, 3.8),
-                arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
+                arrowprops={'arrowstyle': "->", 'color': '#334155', 'lw': 2})
 
     # 6. MODULE M5: Rule-Based Cause Attribution & Ambiguity Gate (Bottom Row - Wide Card)
     draw_box(2.0, 0.4, 8.5, 2.8, c_card, c_m5, "M5: RULE-BASED ATTRIBUTION & AMBIGUITY GATE")
@@ -209,7 +209,7 @@ def generate_fig1_architecture():
 
     # Arrow from M5 to Downstream
     ax.annotate("", xy=(11.0, 1.8), xytext=(10.5, 1.8),
-                arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
+                arrowprops={'arrowstyle': "->", 'color': '#334155', 'lw': 2})
 
     # Figure Note on AI Generation (Required by User)
     ax.text(8.0, 0.1, "[Note: Architecture diagram generated using AI visualization tools]", 
@@ -310,8 +310,8 @@ def generate_fig3_intervention_and_downstream():
     w = 0.28
     x_pos = np.arange(len(stages))
 
-    b1 = ax1.bar(x_pos - w/2, variance_vals, width=w, color=color_var, label='Texture Variance (Var(I))', edgecolor='#0369A1')
-    b2 = ax1_twin.bar(x_pos + w/2, score_vals, width=w, color=color_score, label='Textureless Heuristic Score', edgecolor='#991B1B')
+    ax1.bar(x_pos - w/2, variance_vals, width=w, color=color_var, label='Texture Variance (Var(I))', edgecolor='#0369A1')
+    ax1_twin.bar(x_pos + w/2, score_vals, width=w, color=color_score, label='Textureless Heuristic Score', edgecolor='#991B1B')
 
     ax1.set_title("(a) Scoring Sanity Check: Added Noise (scene_0049, Region 8)", fontsize=11, fontweight='bold', pad=10)
     ax1.set_xticks(x_pos)
@@ -324,11 +324,11 @@ def generate_fig3_intervention_and_downstream():
 
     ax1.annotate("Diagnosis: textureless\n(Conf: High)", xy=(0, 200), xytext=(0, 360),
                 ha='center', fontsize=8.5, fontweight='bold', color='#1E293B',
-                bbox=dict(boxstyle="round,pad=0.3", fc="#F1F5F9", ec="#CBD5E1"))
+                bbox={'boxstyle': "round,pad=0.3", 'fc': "#F1F5F9", 'ec': "#CBD5E1"})
 
     ax1.annotate("Diagnosis: ambiguous\n(Score Collapsed to 0.0)", xy=(1, 400), xytext=(1, 550),
                 ha='center', fontsize=8.5, fontweight='bold', color='#991B1B',
-                bbox=dict(boxstyle="round,pad=0.3", fc="#FEF2F2", ec="#FECACA"))
+                bbox={'boxstyle': "round,pad=0.3", 'fc': "#FEF2F2", 'ec': "#FECACA"})
 
     # Subplot B: Downstream Refinement Across 207 Boundary Scenes
     metrics = ['Regional Boundary RMSE (m)', 'Regional Boundary AbsRel', 'Global Scene RMSE (m)']
@@ -338,8 +338,8 @@ def generate_fig3_intervention_and_downstream():
     x2 = np.arange(len(metrics))
     w2 = 0.35
 
-    r1 = ax2.bar(x2 - w2/2, baseline_scores, width=w2, label='Baseline Depth Anything V2', color='#64748B', edgecolor='#334155')
-    r2 = ax2.bar(x2 + w2/2, refined_scores, width=w2, label='Bilateral Filtering in GT-Selected Masks', color='#10B981', edgecolor='#059669')
+    ax2.bar(x2 - w2/2, baseline_scores, width=w2, label='Baseline Depth Anything V2', color='#64748B', edgecolor='#334155')
+    ax2.bar(x2 + w2/2, refined_scores, width=w2, label='Bilateral Filtering in GT-Selected Masks', color='#10B981', edgecolor='#059669')
 
     ax2.set_title("(b) Oracle Boundary Filtering on 207 Test Scenes (GT masks)", fontsize=11, fontweight='bold', pad=10)
     ax2.set_xticks(x2)
@@ -352,15 +352,15 @@ def generate_fig3_intervention_and_downstream():
     # Improvement percentage badges
     ax2.annotate("Δ: -0.16%\n(RMSE ↓)", xy=(0, 0.67), xytext=(0, 0.72),
                 ha='center', fontsize=8, fontweight='bold', color='#065F46',
-                bbox=dict(boxstyle="round,pad=0.2", fc="#ECFDF5", ec="#A7F3D0"))
+                bbox={'boxstyle': "round,pad=0.2", 'fc': "#ECFDF5", 'ec': "#A7F3D0"})
     
     ax2.annotate("Δ: -0.35%\n(AbsRel ↓)", xy=(1, 0.24), xytext=(1, 0.31),
                 ha='center', fontsize=8, fontweight='bold', color='#065F46',
-                bbox=dict(boxstyle="round,pad=0.2", fc="#ECFDF5", ec="#A7F3D0"))
+                bbox={'boxstyle': "round,pad=0.2", 'fc': "#ECFDF5", 'ec': "#A7F3D0"})
 
     ax2.annotate("Δ: +0.00%\n(No Distortion)", xy=(2, 0.47), xytext=(2, 0.54),
                 ha='center', fontsize=8, fontweight='bold', color='#1E293B',
-                bbox=dict(boxstyle="round,pad=0.2", fc="#F8FAFC", ec="#E2E8F0"))
+                bbox={'boxstyle': "round,pad=0.2", 'fc': "#F8FAFC", 'ec': "#E2E8F0"})
 
     plt.tight_layout()
     fig_path = out_dir / "fig3_intervention_and_downstream.png"
