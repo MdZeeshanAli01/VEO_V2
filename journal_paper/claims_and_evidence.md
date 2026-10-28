@@ -103,3 +103,4 @@ To guarantee adherence to the highest standards of academic peer review, this ma
 ## 3. Summary of Scientific Audit
 
 Every factual, mathematical, and numerical claim in `journal_paper/main.tex` is directly supported by verified experimental code, unit tests, and empirical data in the repository. No unverified superlatives, fabricated benchmark numbers, or unsupported causal claims remain in the text.
+

@@ -214,3 +214,4 @@ To ensure peer-review defensibility, the following limitations must be stated tr
 - **Empirical Evidence:** Sufficient and robust ($244$ test scenes, $5,236$ evaluated regions, $50$ human-rated panels, $207$ downstream evaluation runs, signal ablation, counterfactual testing).
 - **Novelty:** Solid and defensible as a **methodological and diagnostic contribution** to computer vision interpretability.
 - **Recommended Action:** Proceed with drafting a **journal-neutral single-column manuscript** formatted according to Springer Nature standards, with full LaTeX source (`main.tex`), verified references (`references.bib`), original figures (`figures/`), and audit documentation.
+

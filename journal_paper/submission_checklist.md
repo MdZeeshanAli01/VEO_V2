@@ -77,3 +77,4 @@ Because the exact target journal is pending final selection by the authors and f
 ## 5. Pre-Submission Verification Summary
 
 The manuscript is **scientifically validated and ready for target journal adaptation**. All empirical claims match the verified repository data, all figures reflect authentic runs, and all citations are genuine peer-reviewed entries.
+

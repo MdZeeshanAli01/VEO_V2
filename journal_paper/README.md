@@ -89,3 +89,4 @@ python journal_paper/scripts/generate_journal_figures.py
    ```latex
    \documentclass[preprint,12pt,1p]{elsarticle}
    ```
+

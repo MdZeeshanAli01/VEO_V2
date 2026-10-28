@@ -488,3 +488,4 @@ bib_content = """@article{rajapaksha2024deep,
 out_path = Path("journal_paper/references.bib")
 out_path.write_text(bib_content, encoding="utf-8")
 print(f"Successfully generated {out_path} ({len(bib_content):,} bytes).")
+
