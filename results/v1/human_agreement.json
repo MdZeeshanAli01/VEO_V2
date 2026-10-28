@@ -1,0 +1,101 @@
+{
+  "source": "stored_confusion_matrix",
+  "veo_vs_rater1": {
+    "n": 50,
+    "accuracy": 0.36,
+    "kappa": 0.25925925925925924,
+    "macro_f1": 0.2619162873739533,
+    "per_class": {
+      "ambiguous": {
+        "correct": 1,
+        "predicted": 21,
+        "support": 2,
+        "precision": 0.047619047619047616,
+        "recall": 0.5,
+        "f1": 0.08695652173913042
+      },
+      "boundary_mixing": {
+        "correct": 5,
+        "predicted": 7,
+        "support": 19,
+        "precision": 0.7142857142857143,
+        "recall": 0.2631578947368421,
+        "f1": 0.3846153846153846
+      },
+      "occlusion": {
+        "correct": 0,
+        "predicted": 0,
+        "support": 2,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "poor_lighting": {
+        "correct": 0,
+        "predicted": 0,
+        "support": 5,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "reflection": {
+        "correct": 0,
+        "predicted": 7,
+        "support": 2,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "textureless": {
+        "correct": 7,
+        "predicted": 8,
+        "support": 11,
+        "precision": 0.875,
+        "recall": 0.6363636363636364,
+        "f1": 0.7368421052631579
+      },
+      "thin_object": {
+        "correct": 5,
+        "predicted": 7,
+        "support": 9,
+        "precision": 0.7142857142857143,
+        "recall": 0.5555555555555556,
+        "f1": 0.6250000000000001
+      }
+    },
+    "abstained": 21,
+    "coverage": 0.58,
+    "selective": {
+      "n": 29,
+      "accuracy": 0.5862068965517241,
+      "kappa": 0.47192716236722304,
+      "majority_label": "boundary_mixing",
+      "majority_baseline_accuracy": 0.41379310344827586
+    }
+  },
+  "veo_vs_rater2_kappa": 0.13751796837565886,
+  "inter_rater_kappa": 0.3478260869565218,
+  "provenance": {
+    "created_utc": "2026-10-28T08:37:11+00:00",
+    "git_commit": "1c73b9f529e4542c5b8f4d2106853682cbb617bb",
+    "git_dirty": true,
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "packages": {
+      "veo": null,
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "opencv-python": "4.13.0.92",
+      "pillow": "12.2.0",
+      "h5py": "3.14.0",
+      "torch": "2.12.0",
+      "transformers": "5.9.0"
+    },
+    "inputs": {
+      "confusion_matrix": {
+        "path": "results\\v1\\human_validation_results.json",
+        "sha256": "c5d8d4b8e19ef19e35063c78fa083d71b30739ad09c861563dcc8066675c8424"
+      }
+    }
+  }
+}

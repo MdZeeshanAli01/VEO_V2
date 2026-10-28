@@ -1,5 +1,6 @@
 import argparse
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +10,29 @@ from .data import discover_manifest, discover_pairs, validate_pairs
 from .nyu_dataset import create_scene_splits, extract_labeled_mat, extract_split
 from .pipeline import analyze_sample
 from .reports import write_manifest
+from .reproduce import reproduce
 from .runner import run_alignment_ablation, run_model, run_official_metric, run_precomputed
 from .validation import export_rating_set
+
+
+NYU_LABELED_URL = "http://horatio.cs.nyu.edu/mit/silberman/nyu_depth_v2/nyu_depth_v2_labeled.mat"
+
+
+def download_nyu(destination: Path, url: str = NYU_LABELED_URL) -> None:
+    """Download the official NYU Depth V2 labelled set (about 2.8 GB) and print its SHA-256."""
+    import urllib.request
+
+    from .provenance import file_sha256
+
+    if destination.exists():
+        print(f"Already present: {destination}")
+    else:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        partial = destination.with_suffix(".part")
+        print(f"Downloading {url} -> {destination}")
+        urllib.request.urlretrieve(url, partial)
+        partial.rename(destination)
+    print(f"sha256 {file_sha256(destination)}")
 
 
 def run_smoke() -> None:
@@ -41,7 +63,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo")
-    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "compare-alignment", "prepare-rating", "run-precomputed", "run-model", "run-official-metric"])
+    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "compare-alignment", "prepare-rating", "run-precomputed", "run-model", "run-official-metric", "reproduce", "download-nyu"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -61,9 +83,28 @@ def main() -> None:
     parser.add_argument("--split-root", type=Path, default=Path("data/nyu/splits"))
     parser.add_argument("--limit", type=int)
     parser.add_argument("--results-path", type=Path)
+    parser.add_argument("--fixture", action="store_true", help="reproduce: run on a synthetic dataset (no downloads)")
+    parser.add_argument("--workdir", type=Path, default=Path("."), help="reproduce: root for outputs/ and results/")
+    parser.add_argument("--models", nargs="+", help="reproduce: Hugging Face model ids (default: --model-id)")
+    parser.add_argument("--rater1", type=Path)
+    parser.add_argument("--rater2", type=Path)
     args = parser.parse_args()
     if args.command == "smoke":
         run_smoke()
+    elif args.command == "reproduce":
+        reproduce(
+            args.workdir,
+            args.config,
+            fixture=args.fixture,
+            mat_path=args.mat_path,
+            model_ids=tuple(args.models or [args.model_id]),
+            rater1=args.rater1,
+            rater2=args.rater2,
+            device=args.device,
+            seed=args.seed,
+        )
+    elif args.command == "download-nyu":
+        download_nyu(args.mat_path)
     elif args.command == "manifest":
         config = load_config(args.config)
         config = configured(args, config)
@@ -143,7 +184,7 @@ def main() -> None:
     elif args.command == "run-official-metric":
         config = load_config(args.config)
         config = configured(args, config, args.max_depth)
-        config = Config(dataset=config.dataset, experiment=ExperimentConfig(**{**config.experiment.__dict__, "model_name": f"metric_hypersim_{args.encoder}", "align_scale_shift": False}), outputs=config.outputs)
+        config = replace(config, experiment=replace(config.experiment, model_name=f"metric_hypersim_{args.encoder}", align_scale_shift=False))
         records = run_official_metric(config, args.official_repo, args.checkpoint, args.encoder, args.max_depth, args.device)
         print(f"Processed {len(records)} samples. Results: {config.outputs.directory / 'official_metric_results.json'}")
 

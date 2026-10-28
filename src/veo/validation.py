@@ -6,9 +6,22 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .data import load_depth, load_rgb
-from .metrics import compute_error_map
+from .data import load_depth, load_rgb, make_valid_mask
+from .metrics import align_scale_shift, compute_error_map
 from .scoring import classify
+
+ABSTAIN_LABEL = "ambiguous"
+
+# Value each signal is reset to when it is ablated; each entry changes exactly one feature
+NEUTRAL_VALUES = {
+    "texture_var": 500.0,
+    "edge_density": 0.0,
+    "brightness": 128.0,
+    "contrast": 60.0,
+    "highlight_ratio": 0.0,
+    "aspect_ratio": 1.0,
+    "depth_discontinuity": 0.0,
+}
 
 
 def cohens_kappa(first: list[str], second: list[str]) -> float:
@@ -25,7 +38,75 @@ def cohens_kappa(first: list[str], second: list[str]) -> float:
     return float((observed - expected) / (1.0 - expected))
 
 
+def labels_from_confusion(confusion: dict[str, dict[str, int]]) -> tuple[list[str], list[str]]:
+    """Expand a {reference: {predicted: count}} matrix back into paired label lists."""
+    reference, predicted = [], []
+    for ref_label, row in confusion.items():
+        for pred_label, count in row.items():
+            reference.extend([ref_label] * count)
+            predicted.extend([pred_label] * count)
+    return reference, predicted
+
+
+def per_class_report(reference: list[str], predicted: list[str]) -> dict[str, dict[str, float]]:
+    classes = sorted(set(reference) | set(predicted))
+    report = {}
+    for label in classes:
+        true_positive = sum(r == label and p == label for r, p in zip(reference, predicted))
+        predicted_count = sum(p == label for p in predicted)
+        support = sum(r == label for r in reference)
+        precision = true_positive / predicted_count if predicted_count else 0.0
+        recall = true_positive / support if support else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        report[label] = {
+            "correct": true_positive,
+            "predicted": predicted_count,
+            "support": support,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+        }
+    return report
+
+
+def agreement_report(reference: list[str], predicted: list[str], abstain_label: str = ABSTAIN_LABEL) -> dict:
+    """Agreement of predicted labels with a reference rater, over all items and over non-abstained items.
+
+    Selective metrics are reported together with coverage and with the accuracy of always
+    predicting the reference's most frequent label on the same subset.
+    """
+    if len(reference) != len(predicted) or not reference:
+        raise ValueError("reference and predicted must be non-empty and have equal length")
+    total = len(reference)
+    per_class = per_class_report(reference, predicted)
+    committed = [(r, p) for r, p in zip(reference, predicted) if p != abstain_label]
+    report = {
+        "n": total,
+        "accuracy": sum(r == p for r, p in zip(reference, predicted)) / total,
+        "kappa": cohens_kappa(reference, predicted),
+        "macro_f1": float(np.mean([row["f1"] for row in per_class.values()])),
+        "per_class": per_class,
+        "abstained": total - len(committed),
+        "coverage": len(committed) / total,
+        "selective": None,
+    }
+    if committed:
+        ref_committed = [r for r, _ in committed]
+        pred_committed = [p for _, p in committed]
+        majority_label, majority_count = Counter(ref_committed).most_common(1)[0]
+        report["selective"] = {
+            "n": len(committed),
+            "accuracy": sum(r == p for r, p in committed) / len(committed),
+            "kappa": cohens_kappa(ref_committed, pred_committed),
+            "majority_label": majority_label,
+            "majority_baseline_accuracy": majority_count / len(committed),
+        }
+    return report
+
+
 def ablation_change(records: list[dict], dropped_signal: str, include_reflection: bool = True) -> dict[str, int]:
+    if dropped_signal not in NEUTRAL_VALUES:
+        raise ValueError(f"Unsupported ablation signal: {dropped_signal}")
     changed = 0
     total = 0
     for record in records:
@@ -33,30 +114,29 @@ def ablation_change(records: list[dict], dropped_signal: str, include_reflection
             features = dict(region["features"])
             if dropped_signal not in features:
                 continue
-            if dropped_signal == "texture_var":
-                features["texture_var"] = 500.0
-            elif dropped_signal == "edge_density":
-                features["edge_density"] = 0.0
-            elif dropped_signal == "brightness":
-                features["brightness"] = 128.0
-                features["contrast"] = 60.0
-            elif dropped_signal == "contrast":
-                features["contrast"] = 60.0
-            elif dropped_signal == "highlight_ratio":
-                features["highlight_ratio"] = 0.0
-            elif dropped_signal == "aspect_ratio":
-                features["aspect_ratio"] = 1.0
-            elif dropped_signal == "depth_discontinuity":
-                features["depth_discontinuity"] = 0.0
-            else:
-                raise ValueError(f"Unsupported ablation signal: {dropped_signal}")
+            features[dropped_signal] = NEUTRAL_VALUES[dropped_signal]
             new_label = classify(features, include_reflection)["top_cause"]
             changed += new_label != region["top_cause"]
             total += 1
     return {"changed_regions": changed, "total_regions": total}
 
 
-def export_rating_set(results_path: Path, rgb_dir: Path, depth_dir: Path, prediction_dir: Path, output_dir: Path, count: int = 200, seed: int = 42) -> int:
+def export_rating_set(
+    results_path: Path,
+    rgb_dir: Path,
+    depth_dir: Path,
+    prediction_dir: Path,
+    output_dir: Path,
+    count: int = 200,
+    seed: int = 42,
+    prediction_space: str | None = "inverse_depth",
+    max_depth_m: float = 10.0,
+) -> int:
+    """Export blinded rating panels.
+
+    Raw predictions are aligned to metric depth (``prediction_space`` of the model output, or
+    None if already metric) so the prediction and error panels match what VEO analyzed.
+    """
     payload = json.loads(results_path.read_text(encoding="utf-8"))
     regions = [(record["sample_id"], region) for record in payload["records"] for region in record["regions"]]
     if not regions:
@@ -72,15 +152,18 @@ def export_rating_set(results_path: Path, rgb_dir: Path, depth_dir: Path, predic
     for rating_index, (sample_id, region) in enumerate(selected, start=1):
         rgb = load_rgb(rgb_dir / f"{sample_id}.png")
         depth = load_depth(depth_dir / f"{sample_id}.npy")
+        valid = make_valid_mask(depth, max_depth_m)
         prediction = np.asarray(np.load(prediction_dir / f"{sample_id}.npy"), dtype=np.float32)
-        error = compute_error_map(prediction, depth, np.isfinite(depth) & (depth > 0))
+        if prediction_space is not None:
+            prediction, _, _ = align_scale_shift(prediction, depth, valid, prediction_space)
+        error = compute_error_map(prediction, depth, valid)
         x, y, width, height = region["bbox"]
         slices = (slice(y, y + height), slice(x, x + width))
         figure, axes = plt.subplots(1, 4, figsize=(12, 3))
         axes[0].imshow(rgb[slices]); axes[0].set_title("RGB")
         axes[1].imshow(depth[slices], cmap="magma"); axes[1].set_title("Ground truth")
-        axes[2].imshow(prediction[slices], cmap="magma"); axes[2].set_title("Prediction")
-        axes[3].imshow(error[slices], cmap="inferno"); axes[3].set_title("Error")
+        axes[2].imshow(prediction[slices], cmap="magma"); axes[2].set_title("Prediction (aligned)")
+        axes[3].imshow(error[slices], cmap="inferno"); axes[3].set_title("Relative error")
         for axis in axes:
             axis.axis("off")
         panel_path = panel_dir / f"rating_{rating_index:04d}.png"

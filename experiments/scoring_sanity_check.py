@@ -1,95 +1,73 @@
+"""Scoring-function sanity check: adding noise to a textureless region must lower its textureless score.
+
+This checks that the implementation follows its formula (score = 1 - texture_var / 500). It does not
+re-run the depth model, so it says nothing about whether VEO's explanation is faithful to the model.
+"""
+
+import argparse
 import json
 from pathlib import Path
-import numpy as np
-import cv2
 
-from veo.data import load_rgb, load_depth
+import cv2
+import numpy as np
+
+from veo.data import load_depth, load_rgb
 from veo.features import extract_features
+from veo.reports import write_result
 from veo.scoring import classify
 
-def main():
-    results_path = Path("outputs/nyu_final/test/model_results.json")
-    rgb_dir = Path("data/nyu/splits/test/rgb")
-    depth_dir = Path("data/nyu/splits/test/depth")
-    output_dir = Path("outputs/nyu_final/test")
 
-    data = json.load(results_path.open("r", encoding="utf-8"))
-    records = data["records"]
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--results-path", type=Path, default=Path("outputs/nyu_final/test/model_results.json"))
+    parser.add_argument("--rgb-dir", type=Path, default=Path("data/nyu/splits/test/rgb"))
+    parser.add_argument("--depth-dir", type=Path, default=Path("data/nyu/splits/test/depth"))
+    parser.add_argument("--noise-max", type=int, default=100, help="Uniform noise in [0, noise-max) added to RGB")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--output", type=Path, default=Path("results/nyu_test/scoring_sanity_check.json"))
+    args = parser.parse_args()
 
-    # 1. Find a clear textureless failure region
-    target_region = None
-    target_sample_id = None
-    for r in records:
-        for reg in r["regions"]:
-            if reg["top_cause"] == "textureless" and reg["confidence"] == "High":
-                target_region = reg
-                target_sample_id = r["sample_id"]
-                break
-        if target_region:
-            break
+    records = json.loads(args.results_path.read_text(encoding="utf-8"))["records"]
+    candidate = next(
+        (
+            (record["sample_id"], region)
+            for record in records
+            for region in record["regions"]
+            if region["top_cause"] == "textureless" and region["confidence"] == "High"
+        ),
+        None,
+    )
+    if candidate is None:
+        write_result(args.output, {"skipped": "no High-confidence textureless region"}, inputs={"veo_results": args.results_path})
+        print(f"No eligible region; saved {args.output}")
+        return
+    sample_id, region = candidate
+    rgb = load_rgb(args.rgb_dir / f"{sample_id}.png")
+    depth = load_depth(args.depth_dir / f"{sample_id}.npy")
+    x, y, w, h = region["bbox"]
+    # Result files store the bounding box only, so features are re-extracted over the whole box
+    box_region = {"bbox": region["bbox"], "mask": np.zeros_like(depth, dtype=bool)}
+    box_region["mask"][y:y + h, x:x + w] = True
 
-    print("\n" + "=" * 70)
-    print("      VEO FAITHFULNESS & CONTROLLED INTERVENTION EXPERIMENT")
-    print("=" * 70)
-    print(f"Sample Selected: {target_sample_id}")
-    print(f"Region ID: {target_region['region_id']}, BBox: {target_region['bbox']}, Area: {target_region['area']}")
-    print(f"Original Top Cause: {target_region['top_cause']} (Confidence: {target_region['confidence']})")
-    print(f"Original Texture Variance: {target_region['features']['texture_var']:.2f}")
-    print(f"Original Textureless Score: {target_region['scores']['textureless']:.4f}")
+    noise = np.random.default_rng(args.seed).integers(0, args.noise_max, size=(h, w, 3), dtype=np.uint8)
+    perturbed = rgb.copy()
+    perturbed[y:y + h, x:x + w] = cv2.add(perturbed[y:y + h, x:x + w], noise)
+    before = classify(extract_features(rgb, depth, box_region))
+    after = classify(extract_features(perturbed, depth, box_region))
 
-    # Load original image
-    rgb = load_rgb(rgb_dir / f"{target_sample_id}.png").copy()
-    depth = load_depth(depth_dir / f"{target_sample_id}.npy")
-
-    x, y, w, h = target_region["bbox"]
-    # Reconstruct region mask
-    dummy_region = {
-        "bbox": target_region["bbox"],
-        "mask": np.zeros_like(depth, dtype=bool)
+    payload = {
+        "sample_id": sample_id,
+        "region_id": region["region_id"],
+        "edit": f"uniform integer noise [0, {args.noise_max}) added inside the bounding box",
+        "model_rerun": False,
+        "before": {"textureless_score": before["scores"]["textureless"], "top_cause": before["top_cause"]},
+        "after": {"textureless_score": after["scores"]["textureless"], "top_cause": after["top_cause"]},
+        "score_decreased": after["scores"]["textureless"] < before["scores"]["textureless"],
     }
-    dummy_region["mask"][y:y+h, x:x+w] = True
+    write_result(args.output, payload, inputs={"veo_results": args.results_path})
+    print(f"{sample_id} region {region['region_id']}: textureless {payload['before']['textureless_score']:.3f} -> {payload['after']['textureless_score']:.3f}")
+    print(f"Saved {args.output}")
 
-    # INTERVENTION: Inject high-frequency texture (checkerboard / Gaussian noise)
-    noise = np.random.default_rng(42).integers(0, 100, size=(h, w, 3), dtype=np.uint8)
-    perturbed_rgb = rgb.copy()
-    perturbed_rgb[y:y+h, x:x+w] = cv2.add(perturbed_rgb[y:y+h, x:x+w], noise)
-
-    # Re-extract features on perturbed image
-    perturbed_features = extract_features(perturbed_rgb, depth, dummy_region)
-    perturbed_classification = classify(perturbed_features)
-
-    print("\n[After Controlled Intervention: Texture Injection]")
-    print(f"Perturbed Texture Variance: {perturbed_features['texture_var']:.2f} (Increased from {target_region['features']['texture_var']:.2f})")
-    print(f"Perturbed Textureless Score: {perturbed_classification['scores']['textureless']:.4f} (Dropped from {target_region['scores']['textureless']:.4f})")
-    print(f"New VEO Diagnosis: {perturbed_classification['top_cause']} (Confidence: {perturbed_classification['confidence']})")
-
-    # Document shift
-    shift_success = (perturbed_classification['scores']['textureless'] < target_region['scores']['textureless'])
-    print(f"\n[OK] Hypothesis Shift Verified: {shift_success}")
-    print("Explanation is mathematically faithful to regional image appearance.")
-    print("=" * 70 + "\n")
-
-    intervention_record = {
-        "sample_id": target_sample_id,
-        "region_id": target_region["region_id"],
-        "intervention": "high_frequency_texture_injection",
-        "before": {
-            "texture_var": target_region["features"]["texture_var"],
-            "textureless_score": target_region["scores"]["textureless"],
-            "top_cause": target_region["top_cause"]
-        },
-        "after": {
-            "texture_var": perturbed_features["texture_var"],
-            "textureless_score": perturbed_classification["scores"]["textureless"],
-            "top_cause": perturbed_classification["top_cause"]
-        },
-        "faithful": shift_success
-    }
-
-    out_file = output_dir / "intervention_faithfulness.json"
-    out_file.write_text(json.dumps(intervention_record, indent=2), encoding="utf-8")
-    print(f"Saved intervention artifact to: {out_file}")
 
 if __name__ == "__main__":
     main()
-

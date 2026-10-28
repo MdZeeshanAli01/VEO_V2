@@ -1,3 +1,4 @@
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,7 +41,7 @@ def validate_pairs(pairs: list[RGBDepthPair], rgb_dir: Path | None = None, depth
             f"{location} Expected files with identical stems, for example "
             "data/nyu/rgb/scene_0001.png and data/nyu/depth/scene_0001.png."
         )
-    duplicate_ids = {pair.sample_id for pair in pairs if sum(item.sample_id == pair.sample_id for item in pairs) > 1}
+    duplicate_ids = {sample_id for sample_id, count in Counter(pair.sample_id for pair in pairs).items() if count > 1}
     if duplicate_ids:
         raise ValueError(f"Duplicate sample IDs found: {sorted(duplicate_ids)}")
 
@@ -49,13 +50,16 @@ def load_rgb(path: Path) -> np.ndarray:
     return np.asarray(Image.open(path).convert("RGB"), dtype=np.uint8)
 
 
-def load_depth(path: Path, depth_scale: float = 1000.0) -> np.ndarray:
+def load_depth(path: Path, depth_scale: float = 1000.0, hypersim_focal_px: float = 886.81) -> np.ndarray:
     if path.suffix.lower() in {".h5", ".hdf5"}:
         import h5py
 
         with h5py.File(path, "r") as handle:
             distance = np.asarray(handle["dataset"], dtype=np.float32)
-        width, height, focal = 1024, 768, 886.81
+        # Hypersim stores ray distance; convert to planar depth. The default focal length is
+        # Hypersim's standard 60-degree camera at 1024 px width; some scenes use other cameras.
+        height, width = distance.shape
+        focal = hypersim_focal_px
         image_x = np.linspace((-0.5 * width) + 0.5, (0.5 * width) - 0.5, width)[None, :].repeat(height, 0)
         image_y = np.linspace((-0.5 * height) + 0.5, (0.5 * height) - 0.5, height)[:, None].repeat(width, 1)
         norm = np.sqrt(image_x**2 + image_y**2 + focal**2)

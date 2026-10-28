@@ -4,7 +4,7 @@ dataset:
   depth_dir: data/nyu/depth
   depth_scale: 1000.0
   max_depth_m: 10.0
-  split: official_test
+  split: custom_scene_disjoint  # seed-42 scene split of the 1,449 labelled frames, not the official 654-image test split
 
 experiment:
   model_name: depth_anything_v2_relative_small

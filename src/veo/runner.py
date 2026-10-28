@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
@@ -6,6 +7,7 @@ import numpy as np
 
 from .config import Config
 from .data import (
+    RGBDepthPair,
     discover_manifest,
     discover_pairs,
     load_depth,
@@ -13,46 +15,80 @@ from .data import (
     make_valid_mask,
     validate_pairs,
 )
-
-
-def _pairs(config: Config):
-    pairs = discover_manifest(config.dataset.manifest) if config.dataset.manifest else discover_pairs(config.dataset.rgb_dir, config.dataset.depth_dir)
-    validate_pairs(pairs, config.dataset.rgb_dir, config.dataset.depth_dir)
-    return pairs
 from .inference import (
     OfficialMetricDepthPredictor,
     PrecomputedPredictor,
     TransformersDepthPredictor,
 )
 from .metrics import align_scale_only, align_scale_shift, compute_error_map, compute_metrics
-from .pipeline import analyze_sample
-from .reports import write_correlations, write_summary
+from .pipeline import align_prediction, analyze_sample
+from .provenance import provenance
 from .regions import extract_failure_regions
+from .reports import write_correlations, write_summary
 from .visualization import save_panel
 
+# (pair, rgb, target_shape) -> raw prediction with the target's shape
+PredictFn = Callable[[RGBDepthPair, np.ndarray, tuple[int, int]], np.ndarray]
 
-def run_precomputed(config: Config, prediction_dir: Path) -> list[dict]:
-    pairs = _pairs(config)
-    predictor = PrecomputedPredictor(prediction_dir)
+
+def _pairs(config: Config) -> list[RGBDepthPair]:
+    pairs = discover_manifest(config.dataset.manifest) if config.dataset.manifest else discover_pairs(config.dataset.rgb_dir, config.dataset.depth_dir)
+    validate_pairs(pairs, config.dataset.rgb_dir, config.dataset.depth_dir)
+    return pairs
+
+
+def _load_pair(pair: RGBDepthPair, config: Config) -> tuple[np.ndarray, np.ndarray]:
+    rgb = load_rgb(pair.rgb_path)
+    target = load_depth(pair.depth_path, config.dataset.depth_scale)
+    if target.shape != rgb.shape[:2]:
+        raise ValueError(f"RGB/depth shape mismatch for {pair.sample_id}: {rgb.shape[:2]} vs {target.shape}")
+    return rgb, target
+
+
+def run_pairs(
+    config: Config,
+    pairs: list[RGBDepthPair],
+    predict: PredictFn,
+    results_name: str,
+    metadata: dict,
+    save_predictions: bool = False,
+    max_depth_m: float | None = None,
+) -> list[dict]:
+    """Analyze every pair and write results JSON, summary, region CSV, correlations and panels."""
+    output_dir = config.outputs.directory
+    prediction_dir = output_dir / "predictions"
+    if save_predictions:
+        prediction_dir.mkdir(parents=True, exist_ok=True)
+    max_depth = config.dataset.max_depth_m if max_depth_m is None else max_depth_m
     records = []
     for pair in pairs:
-        rgb = load_rgb(pair.rgb_path)
-        target = load_depth(pair.depth_path, config.dataset.depth_scale)
-        if target.shape != rgb.shape[:2]:
-            raise ValueError(f"RGB/depth shape mismatch for {pair.sample_id}: {rgb.shape[:2]} vs {target.shape}")
-        valid_mask = make_valid_mask(target, config.dataset.max_depth_m)
-        prediction = predictor.predict_for_sample(pair.sample_id, target.shape)
+        rgb, target = _load_pair(pair, config)
+        valid_mask = make_valid_mask(target, max_depth)
+        prediction = predict(pair, rgb, target.shape)
+        if save_predictions:
+            np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
         result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment)
         records.append({"sample_id": pair.sample_id, **result})
-        error_map = compute_error_map(prediction, target, valid_mask)
-        save_panel(rgb, target, prediction, error_map, config.outputs.directory / "panels" / f"{pair.sample_id}.png", pair.sample_id)
-    output_dir = config.outputs.directory
+        # Panels show the same aligned prediction the analysis used, not the raw model output
+        aligned, _, _ = align_prediction(prediction, target, valid_mask & np.isfinite(prediction), config.experiment)
+        save_panel(rgb, target, aligned, compute_error_map(aligned, target, valid_mask), output_dir / "panels" / f"{pair.sample_id}.png", pair.sample_id)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "precomputed_results.json"
-    output_path.write_text(json.dumps({"config": asdict(config), "records": records}, default=str, indent=2), encoding="utf-8")
+    payload = {**metadata, "config": asdict(config), "provenance": provenance(config), "records": records}
+    (output_dir / results_name).write_text(json.dumps(payload, default=str, indent=2), encoding="utf-8")
     write_summary(records, output_dir)
     write_correlations(records, output_dir / "correlations.csv")
     return records
+
+
+def run_precomputed(config: Config, prediction_dir: Path) -> list[dict]:
+    predictor = PrecomputedPredictor(prediction_dir)
+    return run_pairs(
+        config,
+        _pairs(config),
+        lambda pair, rgb, shape: predictor.predict_for_sample(pair.sample_id, shape),
+        "precomputed_results.json",
+        {"prediction_dir": str(prediction_dir)},
+    )
 
 
 def run_model(config: Config, model_id: str, device: str = "auto", limit: int | None = None) -> list[dict]:
@@ -60,53 +96,27 @@ def run_model(config: Config, model_id: str, device: str = "auto", limit: int | 
     if limit is not None:
         pairs = pairs[:limit]
     predictor = TransformersDepthPredictor(model_id, device)
-    output_dir = config.outputs.directory
-    prediction_dir = output_dir / "predictions"
-    prediction_dir.mkdir(parents=True, exist_ok=True)
-    records = []
-    for pair in pairs:
-        rgb = load_rgb(pair.rgb_path)
-        target = load_depth(pair.depth_path, config.dataset.depth_scale)
-        if target.shape != rgb.shape[:2]:
-            raise ValueError(f"RGB/depth shape mismatch for {pair.sample_id}: {rgb.shape[:2]} vs {target.shape}")
-        valid_mask = make_valid_mask(target, config.dataset.max_depth_m)
-        prediction = predictor.predict(rgb)
-        np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
-        result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment)
-        records.append({"sample_id": pair.sample_id, **result})
-        error_map = compute_error_map(prediction, target, valid_mask)
-        save_panel(rgb, target, prediction, error_map, output_dir / "panels" / f"{pair.sample_id}.png", pair.sample_id)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "model_results.json"
-    output_path.write_text(json.dumps({"model_id": model_id, "config": asdict(config), "records": records}, default=str, indent=2), encoding="utf-8")
-    write_summary(records, output_dir)
-    write_correlations(records, output_dir / "correlations.csv")
-    return records
+    return run_pairs(
+        config,
+        pairs,
+        lambda pair, rgb, shape: predictor.predict(rgb),
+        "model_results.json",
+        {"model_id": model_id},
+        save_predictions=True,
+    )
 
 
 def run_official_metric(config: Config, official_repo: Path, checkpoint: Path, encoder: str, max_depth: float, device: str = "auto") -> list[dict]:
-    pairs = _pairs(config)
     predictor = OfficialMetricDepthPredictor(official_repo, checkpoint, encoder, max_depth, device)
-    output_dir = config.outputs.directory
-    prediction_dir = output_dir / "predictions"
-    prediction_dir.mkdir(parents=True, exist_ok=True)
-    records = []
-    for pair in pairs:
-        rgb = load_rgb(pair.rgb_path)
-        target = load_depth(pair.depth_path, config.dataset.depth_scale)
-        if target.shape != rgb.shape[:2]:
-            raise ValueError(f"RGB/depth shape mismatch for {pair.sample_id}: {rgb.shape[:2]} vs {target.shape}")
-        valid_mask = make_valid_mask(target, max_depth)
-        prediction = predictor.predict(rgb)
-        np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
-        result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment)
-        records.append({"sample_id": pair.sample_id, **result})
-        save_panel(rgb, target, prediction, compute_error_map(prediction, target, valid_mask), output_dir / "panels" / f"{pair.sample_id}.png", pair.sample_id)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "official_metric_results.json").write_text(json.dumps({"model": f"metric_hypersim_{encoder}", "config": asdict(config), "records": records}, default=str, indent=2), encoding="utf-8")
-    write_summary(records, output_dir)
-    write_correlations(records, output_dir / "correlations.csv")
-    return records
+    return run_pairs(
+        config,
+        _pairs(config),
+        lambda pair, rgb, shape: predictor.predict(rgb),
+        "official_metric_results.json",
+        {"model": f"metric_hypersim_{encoder}"},
+        save_predictions=True,
+        max_depth_m=max_depth,
+    )
 
 
 def _scale_sign(scale: float | None) -> str:
@@ -211,14 +221,16 @@ def run_alignment_ablation(
     device: str = "auto",
     limit: int | None = None,
     start: int = 0,
+    predictor=None,
 ) -> dict:
+    """Compare alignment protocols per sample. Cached predictions are reused; the model is
+    only loaded (or ``predictor`` used) for samples without one."""
     pairs = _pairs(config)
     if start < 0:
         raise ValueError("start must be non-negative")
     pairs = pairs[start:]
     if limit is not None:
         pairs = pairs[:limit]
-    predictor = TransformersDepthPredictor(model_id, device)
     protocols = (
         "none",
         "direct_depth_scale_shift",
@@ -255,10 +267,7 @@ def run_alignment_ablation(
 
     pending = []
     for pair in pairs:
-        rgb = load_rgb(pair.rgb_path)
-        target = load_depth(pair.depth_path, config.dataset.depth_scale)
-        if target.shape != rgb.shape[:2]:
-            raise ValueError(f"RGB/depth shape mismatch for {pair.sample_id}: {rgb.shape[:2]} vs {target.shape}")
+        rgb, target = _load_pair(pair, config)
         cached_path = prediction_dir / f"{pair.sample_id}.npy"
         if cached_path.exists():
             prediction = np.asarray(np.load(cached_path), dtype=np.float32)
@@ -268,8 +277,10 @@ def run_alignment_ablation(
         else:
             pending.append((pair, rgb, target))
 
-    for start in range(0, len(pending), 4):
-        batch = pending[start:start + 4]
+    if pending and predictor is None:
+        predictor = TransformersDepthPredictor(model_id, device)
+    for batch_start in range(0, len(pending), 4):
+        batch = pending[batch_start:batch_start + 4]
         rgb_batch = [item[1] for item in batch]
         if hasattr(predictor, "predict_batch"):
             predictions = predictor.predict_batch(rgb_batch, batch_size=4)
@@ -278,24 +289,23 @@ def run_alignment_ablation(
         for (pair, rgb, target), prediction in zip(batch, predictions):
             np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
             append_record(pair, rgb, target, prediction)
+    metric_names = ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
     summary = {}
     for protocol in protocols:
         protocol_records = [record["protocols"][protocol] for record in records]
+        fitted_scales = [record["alignment"]["scale"] for record in protocol_records if record["alignment"]["scale"] is not None]
         summary[protocol] = {
             "num_samples": len(protocol_records),
             "mean_metrics": {
                 name: float(np.mean([record["metrics"][name] for record in protocol_records]))
-                for name in ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
+                for name in metric_names
             } if protocol_records else {},
             "scale_sign_counts": {
                 sign: sum(record["alignment"]["scale_sign"] == sign for record in protocol_records)
                 for sign in ("positive", "negative", "zero", "not_fitted")
             },
-            "mean_scale": float(np.mean([
-                record["alignment"]["scale"]
-                for record in protocol_records
-                if record["alignment"]["scale"] is not None
-            ])) if any(record["alignment"]["scale"] is not None for record in protocol_records) else None,
+            "mean_scale": float(np.mean(fitted_scales)) if fitted_scales else None,
+            "std_scale": float(np.std(fitted_scales)) if fitted_scales else None,
             "bootstrap_ci95": {
                 name: _bootstrap_mean_ci(
                     [{"sample_id": item["sample_id"], name: item["protocols"][protocol]["metrics"][name]} for item in records],
@@ -303,7 +313,7 @@ def run_alignment_ablation(
                     scene_lookup,
                     config.experiment.random_seed,
                 )
-                for name in ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
+                for name in metric_names
             },
         }
     paired_differences = []
@@ -314,7 +324,7 @@ def run_alignment_ablation(
                 key = f"{left}_minus_{right}"
                 sample_differences["metrics"][key] = {
                     name: record["protocols"][left]["metrics"][name] - record["protocols"][right]["metrics"][name]
-                    for name in ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
+                    for name in metric_names
                 }
         paired_differences.append(sample_differences)
     region_comparison = {}
@@ -333,6 +343,7 @@ def run_alignment_ablation(
     payload = {
         "model_id": model_id,
         "config": asdict(config),
+        "provenance": provenance(config),
         "primary_protocol": config.experiment.primary_protocol,
         "protocols": protocols,
         "records": records,

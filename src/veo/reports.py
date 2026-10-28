@@ -6,6 +6,15 @@ from pathlib import Path
 import numpy as np
 
 
+def write_result(path: Path, payload: dict, config=None, inputs: dict[str, Path] | None = None) -> Path:
+    """Write an experiment result with a provenance block so every number can be traced."""
+    from .provenance import provenance
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({**payload, "provenance": provenance(config, inputs)}, indent=2, default=str), encoding="utf-8")
+    return path
+
+
 def write_manifest(pairs, path: Path, split: str) -> None:
     payload = [{"sample_id": p.sample_id, "rgb_path": str(p.rgb_path), "depth_path": str(p.depth_path), "split": split} for p in pairs]
     path.parent.mkdir(parents=True, exist_ok=True)
