@@ -1,6 +1,6 @@
 """Scoring-function sanity check: adding noise to a textureless region must lower its textureless score.
 
-This checks that the implementation follows its formula (score = 1 - texture_var / 500). It does not
+This checks that the implementation follows its formula (score = 1 - grad_energy / scale). It does not
 re-run the depth model, so it says nothing about whether VEO's explanation is faithful to the model.
 """
 

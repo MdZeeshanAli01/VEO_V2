@@ -35,8 +35,9 @@ def test_agreement_report_without_abstentions_has_full_coverage():
 
 def _region(**overrides):
     features = {
-        "texture_var": 600.0, "edge_density": 0.0, "brightness": 30.0, "contrast": 10.0,
-        "highlight_ratio": 0.0, "aspect_ratio": 1.0, "depth_discontinuity": 0.0, **overrides,
+        "grad_energy": 8.0, "corner_strength": 0.0, "depth_edge_fraction": 0.0, "depth_step": 0.0,
+        "thin_fraction": 0.0, "highlight_ratio": 0.0, "clipped_fraction": 0.0, "brightness": 10.0,
+        "contrast": 10.0, "aspect_ratio": 1.0, "mean_depth_m": 3.0, **overrides,
     }
     return {"features": features, "top_cause": "poor_lighting"}
 
@@ -51,11 +52,11 @@ def test_ablation_changes_only_the_named_signal(signal, monkeypatch):
     assert changed <= {signal}
 
 
-def test_brightness_ablation_is_not_a_duplicate_of_contrast():
-    # Dark, low-contrast region: brightness alone decides poor_lighting
+def test_brightness_ablation_changes_a_dark_region():
+    # Dark region: brightness alone decides poor_lighting
     records = [{"regions": [_region()]}]
     assert ablation_change(records, "brightness")["changed_regions"] == 1
-    assert ablation_change(records, "contrast")["changed_regions"] == 1
+    assert ablation_change(records, "clipped_fraction")["changed_regions"] == 0
     # Already mid-grey: neutralising brightness leaves the label unchanged
     mid_grey = _region(brightness=128.0)
     mid_grey["top_cause"] = classify(mid_grey["features"])["top_cause"]

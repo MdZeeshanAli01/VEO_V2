@@ -31,7 +31,8 @@ def main() -> None:
     filter_params = {"d": 5, "sigmaColor": 0.10, "sigmaSpace": 3}
     samples = []
     for record in records:
-        boxes = [region["bbox"] for region in record["regions"] if region["top_cause"] == "boundary_mixing"]
+        # v2 regions list every supported label; v1 result files only have top_cause
+        boxes = [region["bbox"] for region in record["regions"] if "boundary_mixing" in region.get("labels", [region["top_cause"]])]
         if not boxes:
             continue
         sample_id = record["sample_id"]
@@ -66,7 +67,7 @@ def main() -> None:
     summary = {key: mean(key) for key in samples[0] if key not in ("sample_id", "pixels")} if samples else {}
     payload = {
         "oracle": True,
-        "selection": f"pixels in boundary_mixing boxes with ground-truth relative error above the image's {args.percentile:g}th percentile",
+        "selection": f"pixels in boxes of regions labelled boundary_mixing with ground-truth relative error above the image's {args.percentile:g}th percentile",
         "filter": {"method": "cv2.bilateralFilter", **filter_params},
         "evaluated_scenes": len(samples),
         "mean": summary,

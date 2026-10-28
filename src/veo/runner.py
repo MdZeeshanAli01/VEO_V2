@@ -45,6 +45,22 @@ def _load_pair(pair: RGBDepthPair, config: Config) -> tuple[np.ndarray, np.ndarr
     return rgb, target
 
 
+def load_sample(pair: RGBDepthPair, config: Config, max_depth_m: float | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """RGB, error target, dense geometry depth and evaluation mask for one pair.
+
+    With ``raw_depth_dir`` set, errors are measured on sensor depth only and the dense depth
+    from the manifest is kept for geometry cues.
+    """
+    rgb, dense = _load_pair(pair, config)
+    target = dense
+    if config.dataset.raw_depth_dir is not None:
+        target = load_depth(config.dataset.raw_depth_dir / f"{pair.sample_id}.npy", config.dataset.depth_scale)
+        if target.shape != dense.shape:
+            raise ValueError(f"Raw/dense depth shape mismatch for {pair.sample_id}")
+    max_depth = config.dataset.max_depth_m if max_depth_m is None else max_depth_m
+    return rgb, target, dense, make_valid_mask(target, max_depth, config.dataset.eval_crop)
+
+
 def run_pairs(
     config: Config,
     pairs: list[RGBDepthPair],
@@ -59,15 +75,13 @@ def run_pairs(
     prediction_dir = output_dir / "predictions"
     if save_predictions:
         prediction_dir.mkdir(parents=True, exist_ok=True)
-    max_depth = config.dataset.max_depth_m if max_depth_m is None else max_depth_m
     records = []
     for pair in pairs:
-        rgb, target = _load_pair(pair, config)
-        valid_mask = make_valid_mask(target, max_depth)
+        rgb, target, dense, valid_mask = load_sample(pair, config, max_depth_m)
         prediction = predict(pair, rgb, target.shape)
         if save_predictions:
             np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
-        result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment)
+        result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment, geometry_depth=dense)
         records.append({"sample_id": pair.sample_id, **result})
         # Panels show the same aligned prediction the analysis used, not the raw model output
         aligned, _, _ = align_prediction(prediction, target, valid_mask & np.isfinite(prediction), config.experiment)
@@ -245,8 +259,7 @@ def run_alignment_ablation(
     prediction_dir = config.outputs.directory / "predictions"
     prediction_dir.mkdir(parents=True, exist_ok=True)
 
-    def append_record(pair, rgb, target, prediction):
-        valid_mask = make_valid_mask(target, config.dataset.max_depth_m)
+    def append_record(pair, rgb, target, valid_mask, prediction):
         protocol_results = {
             protocol: _evaluate_alignment_protocol(prediction, target, valid_mask, protocol)
             for protocol in protocols
@@ -267,15 +280,15 @@ def run_alignment_ablation(
 
     pending = []
     for pair in pairs:
-        rgb, target = _load_pair(pair, config)
+        rgb, target, _, valid_mask = load_sample(pair, config)
         cached_path = prediction_dir / f"{pair.sample_id}.npy"
         if cached_path.exists():
             prediction = np.asarray(np.load(cached_path), dtype=np.float32)
             if prediction.shape != target.shape:
                 raise ValueError(f"Cached prediction {cached_path} has shape {prediction.shape}; expected {target.shape}")
-            append_record(pair, rgb, target, prediction)
+            append_record(pair, rgb, target, valid_mask, prediction)
         else:
-            pending.append((pair, rgb, target))
+            pending.append((pair, rgb, target, valid_mask))
 
     if pending and predictor is None:
         predictor = TransformersDepthPredictor(model_id, device)
@@ -286,9 +299,9 @@ def run_alignment_ablation(
             predictions = predictor.predict_batch(rgb_batch, batch_size=4)
         else:
             predictions = [predictor.predict(rgb) for rgb in rgb_batch]
-        for (pair, rgb, target), prediction in zip(batch, predictions, strict=True):
+        for (pair, rgb, target, valid_mask), prediction in zip(batch, predictions, strict=True):
             np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
-            append_record(pair, rgb, target, prediction)
+            append_record(pair, rgb, target, valid_mask, prediction)
     metric_names = ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
     summary = {}
     for protocol in protocols:

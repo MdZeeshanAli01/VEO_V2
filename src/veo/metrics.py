@@ -86,3 +86,13 @@ def compute_error_map(prediction: np.ndarray, target: np.ndarray, valid_mask: np
     evaluation_mask = _evaluation_mask(prediction, target, valid_mask)
     error_map[evaluation_mask] = np.abs(prediction[evaluation_mask] - target[evaluation_mask]) / target[evaluation_mask]
     return error_map
+
+
+def compute_ratio_map(prediction: np.ndarray, target: np.ndarray, valid_mask: np.ndarray) -> np.ndarray:
+    """Per-pixel max(pred/gt, gt/pred), the quantity thresholded by the delta accuracy metrics; 1 where invalid."""
+    ratio = np.ones_like(target, dtype=np.float32)
+    evaluation_mask = _evaluation_mask(prediction, target, valid_mask)
+    pred = np.clip(prediction[evaluation_mask], 1e-6, None)
+    truth = target[evaluation_mask]
+    ratio[evaluation_mask] = np.maximum(pred / truth, truth / pred)
+    return ratio

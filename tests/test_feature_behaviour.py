@@ -1,7 +1,6 @@
 """What each feature should respond to, on synthetic regions.
 
-Tests marked xfail document known v1 defects that Phase 2 will fix. They are strict, so a fix
-makes them fail until the marker is removed, which keeps this list accurate.
+The first five cases below were v1 defects (marked xfail until Phase 2 rebuilt the features).
 """
 
 import numpy as np
@@ -41,37 +40,61 @@ def test_checkerboard_is_not_textureless():
     assert _scores(rgb, depth, _box())["textureless"] < 0.1
 
 
-@pytest.mark.xfail(strict=True, reason="phase 2: reflection uses V>200 & S<40, which matches any white wall")
 def test_flat_white_wall_is_not_reflection():
     rgb, depth = _canvas(235.0)
     assert _scores(rgb, depth, _box())["reflection"] < 0.5
 
 
-@pytest.mark.xfail(strict=True, reason="phase 2: thin_object uses bounding-box aspect ratio, so diagonal poles look square")
 def test_diagonal_pole_is_thin():
     rgb, depth = _canvas()
     mask = np.zeros((64, 64), dtype=bool)
     for i in range(10, 54):
         mask[i, i - 1:i + 2] = True
+    depth[mask] = 1.5  # a pole in front of a wall 3 m away
     assert _scores(rgb, depth, mask)["thin_object"] > 0.5
 
 
-@pytest.mark.xfail(strict=True, reason="phase 2: a long strip of a large surface has a high bounding-box aspect ratio")
 def test_long_strip_of_wall_is_not_thin():
     rgb, depth = _canvas()
     assert _scores(rgb, depth, _box(top=30, height=4, left=4, width=56))["thin_object"] < 0.5
 
 
-@pytest.mark.xfail(strict=True, reason="phase 2: grey-level variance treats a smooth lighting gradient as texture")
 def test_smooth_gradient_is_textureless():
     rgb, depth = _canvas()
     rgb[:] = np.linspace(40, 220, 64, dtype=np.uint8)[None, :, None]
     assert _scores(rgb, depth, _box())["textureless"] > 0.5
 
 
-@pytest.mark.xfail(strict=True, reason="phase 2: occlusion scale is 1.0 m/px, so a 50% depth step barely registers")
-def test_large_relative_depth_step_is_occlusion():
+def test_large_relative_depth_step_is_boundary():
     rgb, depth = _canvas()
     depth[:, 32:] = 1.5
     depth[:, :32] = 1.0
-    assert _scores(rgb, depth, _box(left=20, width=24))["occlusion"] > 0.5
+    assert _scores(rgb, depth, _box(left=20, width=24))["boundary_mixing"] > 0.5
+
+
+def test_same_step_is_found_at_any_scale():
+    # Log-depth edges: a 1 m -> 1.5 m step and a 4 m -> 6 m step are the same relative jump
+    rgb, near = _canvas()
+    near[:, 32:], near[:, :32] = 1.5, 1.0
+    assert _scores(rgb, near * 4.0, _box(left=20, width=24))["boundary_mixing"] == pytest.approx(
+        _scores(rgb, near, _box(left=20, width=24))["boundary_mixing"]
+    )
+
+
+def test_gentle_slope_is_not_a_boundary():
+    rgb, depth = _canvas()
+    depth[:] = np.linspace(2.0, 3.0, 64, dtype=np.float32)[None, :]
+    assert _scores(rgb, depth, _box())["boundary_mixing"] == 0.0
+
+
+def test_local_highlight_is_reflection():
+    rgb, depth = _canvas(120.0)
+    rgb[24:40, 24:40] = 250  # specular spot much brighter than its surroundings
+    assert _scores(rgb, depth, _box(top=22, left=22, height=20, width=20))["reflection"] > 0.5
+
+
+def test_dark_region_is_poor_lighting():
+    rgb, depth = _canvas(12.0)
+    assert _scores(rgb, depth, _box())["poor_lighting"] > 0.5
+    rgb, depth = _canvas(128.0)
+    assert _scores(rgb, depth, _box())["poor_lighting"] == 0.0

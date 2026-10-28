@@ -14,8 +14,8 @@ from pathlib import Path
 
 from .config import Config, DatasetConfig, OutputConfig, load_config
 from .data import discover_manifest, load_depth
-from .fixtures import SyntheticDisparityPredictor, write_fixture_mat
-from .nyu_dataset import create_scene_splits, extract_split
+from .fixtures import SyntheticDisparityPredictor, write_fixture_mat, write_fixture_splits
+from .nyu_dataset import create_scene_splits, extract_split, official_splits
 from .reports import write_result
 from .runner import run_alignment_ablation, run_model, run_pairs
 from .summary import write_summary_markdown
@@ -29,18 +29,28 @@ def _slug(model_id: str) -> str:
     return model_id.split("/")[-1].lower()
 
 
-def prepare_test_split(mat_path: Path, split_root: Path, seed: int) -> Path:
-    """Extract the scene-disjoint test split with its manifest and scene metadata."""
-    records = create_scene_splits(mat_path, seed)["test"]
+def split_records(mat_path: Path, seed: int) -> tuple[str, dict[str, list[dict]]]:
+    """The official train/test split when splits.mat sits next to the dataset, else a seeded scene split."""
+    splits_path = mat_path.with_name("splits.mat")
+    if splits_path.exists():
+        return "official", official_splits(mat_path, splits_path)
+    return f"scene_seed_{seed}", create_scene_splits(mat_path, seed)
+
+
+def prepare_test_split(mat_path: Path, split_root: Path, seed: int) -> tuple[Path, str]:
+    """Extract the test split with its manifest and scene metadata; returns its folder and split name."""
+    split_name, splits = split_records(mat_path, seed)
+    records = splits["test"]
     split_dir = split_root / "test"
     extract_split(mat_path, records, split_dir)
     (split_dir / "metadata.json").write_text(json.dumps(records, indent=2), encoding="utf-8")
     lines = [f"{split_dir / 'rgb' / record['sample_id']}.png {split_dir / 'depth' / record['sample_id']}.npy" for record in records]
     (split_dir / "manifest.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return split_dir
+    return split_dir, split_name
 
 
-def _split_config(base: Config, split_dir: Path, output_dir: Path) -> Config:
+def _split_config(base: Config, split_dir: Path, output_dir: Path, split_name: str, eval_crop: str | None) -> Config:
+    raw_dir = split_dir / "raw_depth"
     dataset = DatasetConfig(
         name=base.dataset.name,
         rgb_dir=split_dir / "rgb",
@@ -48,7 +58,10 @@ def _split_config(base: Config, split_dir: Path, output_dir: Path) -> Config:
         manifest=split_dir / "manifest.txt",
         depth_scale=base.dataset.depth_scale,
         max_depth_m=base.dataset.max_depth_m,
-        split=base.dataset.split,
+        split=f"{split_name}_test",
+        # Errors on sensor depth when the config asks for it and the dataset provides it
+        raw_depth_dir=raw_dir if base.dataset.raw_depth_dir is not None and raw_dir.exists() else None,
+        eval_crop=eval_crop,
     )
     return replace(base, dataset=dataset, outputs=OutputConfig(directory=output_dir))
 
@@ -91,17 +104,19 @@ def reproduce(
 
     if fixture:
         mat_path = write_fixture_mat(outputs / "nyu_fixture.mat", scenes=12)
+        write_fixture_splits(mat_path.with_name("splits.mat"), scenes=12)
         model_ids = (FIXTURE_MODEL,)
     elif mat_path is None or not mat_path.exists():
         raise FileNotFoundError(f"NYU labelled .mat not found at {mat_path}. Download it with: veo download-nyu")
-    print(f"[1/4] Extracting scene-disjoint test split from {mat_path}")
-    split_dir = prepare_test_split(mat_path, outputs / "splits", seed)
+    print(f"[1/4] Extracting the test split from {mat_path}")
+    split_dir, split_name = prepare_test_split(mat_path, outputs / "splits", seed)
 
     base = load_config(config_path)
+    eval_crop = None if fixture else base.dataset.eval_crop  # the eigen crop is defined for 480x640 frames only
     primary_results = None
     for model_id in model_ids:
         slug = _slug(model_id)
-        config = _split_config(base, split_dir, outputs / slug)
+        config = _split_config(base, split_dir, outputs / slug, split_name, eval_crop)
         print(f"[2/4] Predicting and analyzing with {model_id}")
         if fixture:
             predictor = SyntheticDisparityPredictor(seed)

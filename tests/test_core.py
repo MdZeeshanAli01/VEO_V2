@@ -64,33 +64,36 @@ def test_regions_respect_area_and_mask():
     assert regions[0]["area"] == 9
 
 
-def test_classification_returns_documented_fields():
-    result = classify({
-        "texture_var": 10.0,
-        "edge_density": 0.1,
-        "brightness": 128.0,
-        "contrast": 20.0,
-        "highlight_ratio": 0.0,
-        "aspect_ratio": 1.0,
-        "depth_discontinuity": 2.0,
-    })
+def _features(**overrides):
+    features = {
+        "grad_energy": 8.0, "corner_strength": 0.0, "depth_edge_fraction": 0.0, "depth_step": 0.0,
+        "thin_fraction": 0.0, "highlight_ratio": 0.0, "clipped_fraction": 0.0, "brightness": 128.0,
+        "contrast": 20.0, "aspect_ratio": 1.0, "mean_depth_m": 3.0,
+    }
+    return {**features, **overrides}
+
+
+def test_classification_abstains_on_competing_evidence():
+    result = classify(_features(grad_energy=0.0, depth_edge_fraction=0.5))
     assert result["top_cause"] == "ambiguous"
     assert result["confidence"] == "Low"
+    assert set(result["labels"]) == {"textureless", "boundary_mixing"}
     assert "score_margin" in result
 
 
+def test_classification_abstains_without_evidence():
+    result = classify(_features())
+    assert result["top_cause"] == "ambiguous" and result["labels"] == []
+
+
 def test_classification_accepts_clear_evidence():
-    result = classify({
-        "texture_var": 500.0,
-        "edge_density": 0.0,
-        "brightness": 128.0,
-        "contrast": 60.0,
-        "highlight_ratio": 0.0,
-        "aspect_ratio": 1.0,
-        "depth_discontinuity": 2.0,
-    })
-    assert result["top_cause"] == "occlusion"
+    result = classify(_features(depth_edge_fraction=0.45))
+    assert result["top_cause"] == "boundary_mixing"
     assert result["confidence"] == "High"
+
+
+def test_reflection_can_be_disabled():
+    assert "reflection" not in classify(_features(highlight_ratio=1.0), include_reflection=False)["scores"]
 
 
 def test_nyu_pair_discovery_and_precomputed_prediction(tmp_path):
@@ -151,7 +154,16 @@ def test_features_handle_one_pixel_wide_region():
     depth = np.ones((3, 1), dtype=np.float32)
     region = {"bbox": [0, 0, 1, 3], "mask": np.ones((3, 1), dtype=bool)}
     features = extract_features(rgb, depth, region)
-    assert features["depth_discontinuity"] == 0.0
+    assert features["depth_edge_fraction"] == 0.0 and features["aspect_ratio"] == 3.0
+
+
+def test_features_ignore_unmeasured_depth():
+    rgb = np.full((20, 20, 3), 128, dtype=np.uint8)
+    depth = np.full((20, 20), 2.0, dtype=np.float32)
+    depth[:, 10:] = 0.0  # sensor holes must not look like depth edges
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[5:15, 2:8] = True
+    assert extract_features(rgb, depth, {"bbox": [2, 5, 6, 10], "mask": mask})["depth_edge_fraction"] == 0.0
 
 
 def test_cohens_kappa_perfect_agreement():

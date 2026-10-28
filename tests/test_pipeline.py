@@ -21,7 +21,7 @@ def _golden_view(result: dict) -> dict:
         "alignment": {name: round(result["alignment"][name], 5) for name in ("scale", "shift")},
         "num_regions": result["num_regions"],
         "regions": [
-            {"bbox": region["bbox"], "area": region["area"], "top_cause": region["top_cause"], "confidence": region["confidence"]}
+            {"bbox": region["bbox"], "area": region["area"], "top_cause": region["top_cause"], "labels": region["labels"], "confidence": region["confidence"]}
             for region in result["regions"]
         ],
     }

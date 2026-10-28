@@ -74,5 +74,18 @@ def load_depth(path: Path, depth_scale: float = 1000.0, hypersim_focal_px: float
     return depth
 
 
-def make_valid_mask(depth: np.ndarray, max_depth_m: float = 10.0) -> np.ndarray:
-    return np.isfinite(depth) & (depth > 0.0) & (depth <= max_depth_m)
+# Standard NYU evaluation crop (Eigen et al.) for 480x640 frames: rows 45:471, columns 41:601
+EIGEN_CROP = (slice(45, 471), slice(41, 601))
+
+
+def make_valid_mask(depth: np.ndarray, max_depth_m: float = 10.0, crop: str | None = None) -> np.ndarray:
+    valid = np.isfinite(depth) & (depth > 0.0) & (depth <= max_depth_m)
+    if crop == "eigen":
+        if depth.shape != (480, 640):
+            raise ValueError(f"The eigen crop is defined for 480x640 frames, got {depth.shape}")
+        cropped = np.zeros_like(valid)
+        cropped[EIGEN_CROP] = True
+        valid &= cropped
+    elif crop is not None:
+        raise ValueError(f"Unknown evaluation crop: {crop}")
+    return valid

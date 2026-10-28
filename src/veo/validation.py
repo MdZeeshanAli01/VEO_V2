@@ -14,13 +14,12 @@ ABSTAIN_LABEL = "ambiguous"
 
 # Value each signal is reset to when it is ablated; each entry changes exactly one feature
 NEUTRAL_VALUES = {
-    "texture_var": 500.0,
-    "edge_density": 0.0,
-    "brightness": 128.0,
-    "contrast": 60.0,
+    "grad_energy": 8.0,  # the default texture scale: textureless score 0
+    "depth_edge_fraction": 0.0,
+    "thin_fraction": 0.0,
     "highlight_ratio": 0.0,
-    "aspect_ratio": 1.0,
-    "depth_discontinuity": 0.0,
+    "brightness": 128.0,
+    "clipped_fraction": 0.0,
 }
 
 
@@ -181,7 +180,7 @@ def export_rating_set(
         writer.writerows(rows)
     (output_dir / "rater_instructions.md").write_text(
         "# VEO Blind Region Rating\n\nAssign one primary label to each panel without inspecting VEO predictions or scores.\n\n"
-        "Allowed labels: `textureless`, `boundary_mixing`, `occlusion`, `thin_object`, `poor_lighting`, `reflection`, `ambiguous`.\n\n"
+        "Allowed labels: `textureless`, `boundary_mixing` (including occlusion edges), `thin_object`, `poor_lighting`, `reflection`, `ambiguous`.\n\n"
         "Use `ambiguous` when evidence is insufficient or multiple labels are equally plausible. Record confidence as `high`, `medium`, or `low`. Do not infer the label from the filename.\n",
         encoding="utf-8",
     )

@@ -1,8 +1,13 @@
+import json
 from pathlib import Path
 
 import h5py
 import numpy as np
 from PIL import Image
+
+# Optional per-frame layers of the labelled .mat, saved next to rgb/ and depth/ when present.
+# rawDepths: sensor depth projected to the RGB frame (0 = not measured); labels: NYU class ids.
+OPTIONAL_LAYERS = {"rawDepths": ("raw_depth", np.float32), "labels": ("labels", np.uint16), "instances": ("instances", np.uint8)}
 
 
 def extract_labeled_mat(mat_path: Path, rgb_dir: Path, depth_dir: Path, start: int = 0, count: int | None = None) -> int:
@@ -27,13 +32,14 @@ def extract_labeled_mat(mat_path: Path, rgb_dir: Path, depth_dir: Path, start: i
     return stop - start
 
 
+def _cell_strings(handle: h5py.File, key: str) -> list[str]:
+    """Decode a MATLAB cell array of strings (stored as uint16 code units behind object references)."""
+    references = np.asarray(handle[key][:]).reshape(-1)
+    return [handle[reference][()].tobytes().decode("utf-16le").rstrip("\x00") for reference in references]
+
+
 def _scene_names(handle: h5py.File) -> list[str]:
-    references = np.asarray(handle["scenes"][:]).reshape(-1)
-    names = []
-    for reference in references:
-        value = handle["#refs#"][reference][()]
-        names.append(value.tobytes().decode("utf-16le").rstrip("\x00"))
-    return names
+    return _cell_strings(handle, "scenes")
 
 
 def create_scene_splits(mat_path: Path, seed: int = 42, train_fraction: float = 0.70, validation_fraction: float = 0.15) -> dict[str, list[dict]]:
@@ -56,16 +62,41 @@ def create_scene_splits(mat_path: Path, seed: int = 42, train_fraction: float = 
     }
 
 
+def official_splits(mat_path: Path, splits_path: Path) -> dict[str, list[dict]]:
+    """The official NYU Depth V2 train (795) / test (654) split from ``splits.mat`` (1-based indices)."""
+    from scipy.io import loadmat
+
+    split_indices = loadmat(splits_path)
+    with h5py.File(mat_path, "r") as handle:
+        scenes = _scene_names(handle)
+    result = {}
+    for split, key in (("train", "trainNdxs"), ("test", "testNdxs")):
+        indices = sorted(int(value) - 1 for value in np.asarray(split_indices[key]).reshape(-1))
+        result[split] = [{"index": index, "sample_id": f"scene_{index + 1:04d}", "scene": scenes[index]} for index in indices]
+    shared = {record["scene"] for record in result["train"]} & {record["scene"] for record in result["test"]}
+    if shared:
+        raise ValueError(f"Official split shares scenes between train and test: {sorted(shared)[:5]}")
+    return result
+
+
 def extract_split(mat_path: Path, split_records: list[dict], output_dir: Path) -> int:
+    """Write rgb/, depth/ (dense) and, when the file has them, raw_depth/, labels/ and instances/."""
     rgb_dir = output_dir / "rgb"
     depth_dir = output_dir / "depth"
     rgb_dir.mkdir(parents=True, exist_ok=True)
     depth_dir.mkdir(parents=True, exist_ok=True)
     with h5py.File(mat_path, "r") as handle:
+        layers = {key: spec for key, spec in OPTIONAL_LAYERS.items() if key in handle}
+        for directory, _ in layers.values():
+            (output_dir / directory).mkdir(exist_ok=True)
+        if "names" in handle:
+            (output_dir / "label_names.json").write_text(json.dumps(_cell_strings(handle, "names")), encoding="utf-8")
         for record in split_records:
             index = record["index"]
             image = np.asarray(handle["images"][index], dtype=np.uint8).transpose(2, 1, 0)
             depth = np.asarray(handle["depths"][index], dtype=np.float32).transpose(1, 0)
             Image.fromarray(image, mode="RGB").save(rgb_dir / f"{record['sample_id']}.png")
             np.save(depth_dir / f"{record['sample_id']}.npy", depth)
+            for key, (directory, dtype) in layers.items():
+                np.save(output_dir / directory / f"{record['sample_id']}.npy", np.asarray(handle[key][index], dtype=dtype).transpose(1, 0))
     return len(split_records)
