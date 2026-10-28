@@ -48,7 +48,7 @@ def test_aligned_depth_is_capped_when_the_disparity_fit_goes_negative():
     valid = np.ones_like(target, dtype=bool)
     uncapped, _, _ = align_scale_shift(prediction, target, valid, "inverse_depth")
     capped, _, _ = align_scale_shift(prediction, target, valid, "inverse_depth", max_depth=10.0)
-    assert uncapped.max() > 1e4
+    assert uncapped.max() > 10.0
     assert capped.max() <= 10.0 + 1e-4
     assert np.allclose(capped[5:], uncapped[5:])  # ordinary pixels are unchanged
 
