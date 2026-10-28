@@ -64,6 +64,43 @@ def _model(name: str, summary: dict) -> list[str]:
     return lines + [""]
 
 
+def _interval(entry: dict | None, percent: bool = True) -> str:
+    if not entry:
+        return "-"
+    fmt = _pct if percent else (lambda value: f"{value:.3f}")
+    return f"{fmt(entry['estimate'])} [{fmt(entry['lower'])}, {fmt(entry['upper'])}]"
+
+
+def _human_study(result: dict) -> list[str]:
+    agreement = result["veo_vs_consensus"]
+    bootstrap = agreement["bootstrap"]
+    included = sum(rater["included"] for rater in result["raters"].values())
+    inter = result["inter_rater"]
+    lines = [
+        "## Human study (Dawid-Skene consensus)",
+        "",
+        f"- {result['items_rated']} items; {included} of {len(result['raters'])} raters passed the practice round",
+        f"- Inter-rater: Krippendorff α = {inter['krippendorff_alpha']:.3f}"
+        + (f", Fleiss κ = {inter['fleiss_kappa']:.3f} on {inter['fleiss_items']} items" if inter["fleiss_kappa"] is not None else ""),
+        f"- VEO vs consensus: accuracy {_interval(bootstrap['accuracy'])}, κ {_interval(bootstrap['kappa'], percent=False)}, "
+        f"weighted to the test set {_interval(bootstrap['weighted_accuracy'])}",
+    ]
+    if "selective_accuracy" in bootstrap:
+        lines.append(
+            f"- Where VEO commits ({_pct(agreement['coverage'])} of items): accuracy {_interval(bootstrap['selective_accuracy'])} "
+            f"vs majority baseline {_interval(bootstrap['selective_majority_baseline'])}"
+        )
+    if "calibrated_vs_consensus" in result:
+        lines.append(f"- Calibrated model vs consensus: accuracy {_interval(result['calibrated_vs_consensus']['bootstrap']['accuracy'])}")
+    checks = result["preregistered_checks"]
+    lines += ["", "| Pre-registered check | Result |", "|---|---|"]
+    lines.append(f"| Krippendorff α ≥ 0.4 | {'pass' if checks['inter_rater_alpha_at_least_0_4'] else 'fail'} |")
+    lines.append(f"| Selective accuracy above majority baseline | {'pass' if checks['selective_accuracy_above_majority_baseline'] else 'fail'} |")
+    classes = ", ".join(checks["classes_with_precision_above_base_rate"]) or "none"
+    lines.append(f"| ≥ 3 classes with precision above base rate | {'pass' if checks['at_least_three_classes_above_base_rate'] else 'fail'} ({classes}) |")
+    return lines + [""]
+
+
 def _auroc_cell(entry: dict | None) -> str:
     if not entry or entry.get("auroc") is None:
         return "-"
@@ -186,6 +223,9 @@ def write_summary_markdown(results_dir: Path) -> Path:
         rules = _load(model_dir / "failure_rules.json")
         if rules:
             lines += _failure_rules(rules)
+        study = _load(model_dir / "human_study.json")
+        if study:
+            lines += _human_study(study)
         silver = _load(model_dir / "silver_calibration.json")
         if silver:
             lines += _silver(silver)

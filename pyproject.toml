@@ -30,6 +30,9 @@ veo = "veo.cli:main"
 where = ["src"]
 include = ["veo*"]
 
+[tool.setuptools.package-data]
+veo = ["templates/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

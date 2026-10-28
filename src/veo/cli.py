@@ -57,7 +57,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="veo")
-    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "compare-alignment", "prepare-rating", "run-precomputed", "run-model", "run-official-metric", "reproduce", "download-nyu"])
+    parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "compare-alignment", "prepare-rating", "run-precomputed", "run-model", "run-official-metric", "reproduce", "download-nyu", "prepare-study"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)
     parser.add_argument("--depth-dir", type=Path)
@@ -80,6 +80,10 @@ def main() -> None:
     parser.add_argument("--fixture", action="store_true", help="reproduce: run on a synthetic dataset (no downloads)")
     parser.add_argument("--workdir", type=Path, default=Path("."), help="reproduce: root for outputs/ and results/")
     parser.add_argument("--models", nargs="+", help="reproduce: Hugging Face model ids (default: --model-id)")
+    parser.add_argument("--train-results", type=Path, help="prepare-study: train model_results.json for practice items")
+    parser.add_argument("--per-stratum", type=int, default=40)
+    parser.add_argument("--random-count", type=int, default=60)
+    parser.add_argument("--practice-count", type=int, default=20)
     parser.add_argument("--rater1", type=Path)
     parser.add_argument("--rater2", type=Path)
     args = parser.parse_args()
@@ -99,6 +103,17 @@ def main() -> None:
         )
     elif args.command == "download-nyu":
         download_nyu(args.mat_path)
+    elif args.command == "prepare-study":
+        from .study import build_study
+
+        if not args.results_path:
+            raise ValueError("--results-path (test model_results.json) is required for prepare-study")
+        built = build_study(
+            args.results_path, args.output_dir or Path("study"), train_results=args.train_results,
+            per_stratum=args.per_stratum, random_count=args.random_count, practice_count=args.practice_count, seed=args.seed,
+        )
+        print(f"Study with {built['items']} items and {built['practice']} practice items: {built['output_dir']}")
+        print(f"Keep the manifest away from raters: {built['manifest']}")
     elif args.command == "manifest":
         config = load_config(args.config)
         config = configured(args, config)
