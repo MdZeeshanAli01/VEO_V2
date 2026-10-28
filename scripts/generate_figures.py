@@ -10,8 +10,8 @@ plt.rcParams['font.sans-serif'] = 'DejaVu Sans'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['figure.dpi'] = 300
 
-out_dir = Path("figures")
-out_dir.mkdir(exist_ok=True)
+out_dir = Path("web_app/assets")  # the site serves these directly
+out_dir.mkdir(parents=True, exist_ok=True)
 ALIGNMENT_ABLATION = Path("outputs/alignment_ablation_full/test/alignment_ablation.json")
 
 
