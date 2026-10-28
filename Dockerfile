@@ -11,8 +11,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Copy the complete web application, assets, precomputed data, and server script
+# Copy the web application and server script
 COPY web_app/ /app/web_app/
+
+# The video and scene data are GitHub release assets; files already in the build context are reused
+RUN python web_app/fetch_assets.py
 
 # Expose server port (mapped to 80 via Docker/docker-compose)
 EXPOSE 8000
