@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: System libraries for OpenCV
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1
+      - name: Install
+        run: uv sync --python 3.11 --extra dev --frozen
+      - name: Fetch site assets
+        run: python web_app/fetch_assets.py
+      - name: Lint
+        run: uv run ruff check .
+      - name: Tests
+        run: uv run pytest -q --cov=veo --cov-report=term --cov-fail-under=85
+      - name: Reproduce on the synthetic fixture
+        run: uv run veo reproduce --fixture --workdir "$RUNNER_TEMP/veo"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fixture-results
+          path: ${{ runner.temp }}/veo/results/fixture

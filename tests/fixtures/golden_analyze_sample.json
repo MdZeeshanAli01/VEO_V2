@@ -1,0 +1,90 @@
+{
+  "metrics": {
+    "mae": 0.42651,
+    "rmse": 0.62781,
+    "abs_rel": 0.09965,
+    "sq_rel": 0.09299,
+    "delta1": 0.87004,
+    "delta2": 0.96574,
+    "delta3": 0.99528,
+    "spearman": 0.69658
+  },
+  "alignment": {
+    "scale": 0.32817,
+    "shift": -0.17235
+  },
+  "num_regions": 5,
+  "regions": [
+    {
+      "bbox": [
+        12,
+        0,
+        29,
+        27
+      ],
+      "area": 585,
+      "top_cause": "textureless",
+      "labels": [
+        "textureless"
+      ],
+      "confidence": "High"
+    },
+    {
+      "bbox": [
+        93,
+        0,
+        7,
+        65
+      ],
+      "area": 391,
+      "top_cause": "ambiguous",
+      "labels": [
+        "boundary_mixing",
+        "thin_object"
+      ],
+      "confidence": "Low"
+    },
+    {
+      "bbox": [
+        45,
+        33,
+        5,
+        32
+      ],
+      "area": 153,
+      "top_cause": "boundary_mixing",
+      "labels": [
+        "boundary_mixing",
+        "thin_object"
+      ],
+      "confidence": "High"
+    },
+    {
+      "bbox": [
+        78,
+        33,
+        5,
+        32
+      ],
+      "area": 153,
+      "top_cause": "boundary_mixing",
+      "labels": [
+        "boundary_mixing",
+        "thin_object"
+      ],
+      "confidence": "High"
+    },
+    {
+      "bbox": [
+        54,
+        78,
+        22,
+        18
+      ],
+      "area": 310,
+      "top_cause": "ambiguous",
+      "labels": [],
+      "confidence": "Low"
+    }
+  ]
+}

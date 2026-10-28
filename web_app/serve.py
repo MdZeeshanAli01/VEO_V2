@@ -2,23 +2,25 @@
 Vision Error Observatory (VEO) - High-Performance Local HTTP Server
 Features:
 - Seamless byte-range support (HTTP 206 Partial Content) for smooth MP4 video playback & seeking
-- Comprehensive MIME type mapping (mp4, css, js, json, svg, pdf, woff2, ico)
-- Fallback route aliases for legacy links (/figures/*, /paper/* -> /assets/*)
+- MIME type mapping (mp4, css, js, json, svg, woff2, ico)
+- Fallback route alias for legacy links (/figures/* -> /assets/*)
 - Automatic port fallback (8000 -> 8001 -> 8080) if port is in use
 - Zero external dependencies; runs on standard library
 """
 
 import http.server
-import socketserver
-import webbrowser
 import os
 import re
+import socketserver
 import sys
+import webbrowser
 from pathlib import Path
 from urllib.parse import unquote
 
 DEFAULT_PORT = 8000
 DIRECTORY = Path(__file__).parent.resolve()
+# Local runs stay on loopback; the container sets VEO_HOST=0.0.0.0 to accept mapped traffic
+HOST = os.environ.get("VEO_HOST", "127.0.0.1")
 
 class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {
@@ -42,6 +44,16 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIRECTORY), **kwargs)
 
+    @staticmethod
+    def contained(path: Path) -> Path | None:
+        # Resolve and reject anything that escapes DIRECTORY (e.g. "/figures/..%2f..%2fetc")
+        resolved = path.resolve()
+        try:
+            resolved.relative_to(DIRECTORY)
+        except ValueError:
+            return None
+        return resolved
+
     def do_HEAD(self):
         self.handle_request(head_only=True)
 
@@ -60,53 +72,16 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Fallback aliases to prevent 404s on legacy or cached links
-        if clean_path.startswith("/figures/"):
-            filename = clean_path[len("/figures/"):]
-            target = DIRECTORY / "assets" / filename
-            if target.exists():
-                self.serve_file(target, head_only=head_only)
-                return
-
-        if clean_path.startswith("/paper/"):
-            filename = clean_path[len("/paper/"):]
-            target = DIRECTORY / "assets" / filename
-            if target.exists():
-                self.serve_file(target, head_only=head_only)
-                return
-
-        if clean_path == "/favicon.ico":
-            fav = DIRECTORY / "favicon.ico"
-            if not fav.exists():
-                fav = DIRECTORY / "assets" / "favicon.ico"
-            if fav.exists():
-                self.serve_file(fav, head_only=head_only)
-                return
-
-        # Universal Font Fallback: intercepts any request for .woff2, .woff, .ttf, or fa-*
-        clean_name = Path(clean_path).name
-        if clean_path.endswith((".woff2", ".woff", ".ttf")) or "fa-" in clean_path or "webfonts" in clean_path:
-            candidates = [
-                DIRECTORY / "assets" / "webfonts" / clean_name,
-                DIRECTORY / "assets" / "fontawesome" / "webfonts" / clean_name,
-                DIRECTORY / "webfonts" / clean_name,
-                DIRECTORY / clean_name,
-                DIRECTORY / "assets" / "webfonts" / clean_name.replace(".ttf", ".woff2"),
-                DIRECTORY / "assets" / "fontawesome" / "webfonts" / clean_name.replace(".ttf", ".woff2"),
-                DIRECTORY / "webfonts" / clean_name.replace(".ttf", ".woff2"),
-                DIRECTORY / clean_name.replace(".ttf", ".woff2"),
-            ]
-            for candidate in candidates:
-                if candidate.is_file():
-                    self.serve_file(candidate, head_only=head_only)
+        for prefix in ("/figures/",):
+            if clean_path.startswith(prefix):
+                target = self.contained(DIRECTORY / "assets" / clean_path[len(prefix):])
+                if target is not None and target.is_file():
+                    self.serve_file(target, head_only=head_only)
                     return
 
         # Handle regular files with byte-range support for videos
-        target = (DIRECTORY / clean_path.lstrip("/")).resolve()
-        
-        # Security: verify path is within DIRECTORY
-        try:
-            target.relative_to(DIRECTORY)
-        except ValueError:
+        target = self.contained(DIRECTORY / clean_path.lstrip("/"))
+        if target is None:
             self.send_error(403, "Access denied")
             return
 
@@ -214,7 +189,7 @@ def main():
     print(f"  Root Directory : {DIRECTORY}")
     print(f"  URL            : {url}")
     print(f"  Port           : {port}")
-    print(f"  Status         : Ready (Zero-Warning, Offline-Optimized)")
+    print("  Status         : Ready (Zero-Warning, Offline-Optimized)")
     print("=" * 74)
     print("  Serving assets: CSS (Precompiled), Chart.js (Local), FontAwesome, Video")
     print("  Opening browser automatically... Press Ctrl+C to stop.")
@@ -223,7 +198,7 @@ def main():
     webbrowser.open(url)
 
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("", port), VEORequestHandler) as httpd:
+    with socketserver.ThreadingTCPServer((HOST, port), VEORequestHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

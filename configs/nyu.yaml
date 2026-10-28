@@ -1,25 +1,27 @@
+# NYU Depth V2, protocol v2 (docs/RESEARCH_PROTOCOL_V2.md): errors on sensor-measured pixels only,
+# official 654-image test split, Eigen crop, failure = pixel failing delta_1.
 dataset:
   name: nyu_depth_v2
   rgb_dir: data/nyu/rgb
-  depth_dir: data/nyu/depth
+  depth_dir: data/nyu/depth        # dense, in-painted depth: geometry cues only
+  raw_depth_dir: data/nyu/raw_depth  # sensor depth (0 = not measured): error target
   depth_scale: 1000.0
   max_depth_m: 10.0
   split: official_test
+  eval_crop: eigen
 
 experiment:
   model_name: depth_anything_v2_relative_small
   align_scale_shift: true
   prediction_space: inverse_depth
   primary_protocol: inverse_depth_scale_shift
+  region_mode: delta
+  delta_threshold: 1.25
   error_percentile: 85.0
   min_region_area: 25
+  opening_radius: 0
+  geometry_source: ground_truth
   include_reflection: true
-  texture_variance_scale: 500.0
-  edge_density_scale: 3.0
-  contrast_scale: 60.0
-  occlusion_scale: 1.0
-  reflection_scale: 5.0
-  ambiguity_margin: 0.10
   random_seed: 42
 
 outputs:

@@ -1,3 +1,5 @@
+> **Errata (phase 0 revision):** some claims in this v1 document are overstated or incorrect, including the headline human-agreement figure and Figure 2(a). See [ERRATA_V1.md](ERRATA_V1.md) for the corrections.
+
 # VEO PROJECT — COMPLETE RESEARCH DOCUMENTATION
 ## Vision Error Observatory: A Validated, Evidence-Based Framework for Region-Level Failure Diagnosis in Monocular Depth Estimation
 
