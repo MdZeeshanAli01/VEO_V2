@@ -19,6 +19,8 @@ from urllib.parse import unquote
 
 DEFAULT_PORT = 8000
 DIRECTORY = Path(__file__).parent.resolve()
+# Local runs stay on loopback; the container sets VEO_HOST=0.0.0.0 to accept mapped traffic
+HOST = os.environ.get("VEO_HOST", "127.0.0.1")
 
 class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {
@@ -42,6 +44,16 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIRECTORY), **kwargs)
 
+    @staticmethod
+    def contained(path: Path) -> Path | None:
+        # Resolve and reject anything that escapes DIRECTORY (e.g. "/figures/..%2f..%2fetc")
+        resolved = path.resolve()
+        try:
+            resolved.relative_to(DIRECTORY)
+        except ValueError:
+            return None
+        return resolved
+
     def do_HEAD(self):
         self.handle_request(head_only=True)
 
@@ -60,19 +72,12 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Fallback aliases to prevent 404s on legacy or cached links
-        if clean_path.startswith("/figures/"):
-            filename = clean_path[len("/figures/"):]
-            target = DIRECTORY / "assets" / filename
-            if target.exists():
-                self.serve_file(target, head_only=head_only)
-                return
-
-        if clean_path.startswith("/paper/"):
-            filename = clean_path[len("/paper/"):]
-            target = DIRECTORY / "assets" / filename
-            if target.exists():
-                self.serve_file(target, head_only=head_only)
-                return
+        for prefix in ("/figures/", "/paper/"):
+            if clean_path.startswith(prefix):
+                target = self.contained(DIRECTORY / "assets" / clean_path[len(prefix):])
+                if target is not None and target.is_file():
+                    self.serve_file(target, head_only=head_only)
+                    return
 
         if clean_path == "/favicon.ico":
             fav = DIRECTORY / "favicon.ico"
@@ -101,12 +106,8 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
                     return
 
         # Handle regular files with byte-range support for videos
-        target = (DIRECTORY / clean_path.lstrip("/")).resolve()
-        
-        # Security: verify path is within DIRECTORY
-        try:
-            target.relative_to(DIRECTORY)
-        except ValueError:
+        target = self.contained(DIRECTORY / clean_path.lstrip("/"))
+        if target is None:
             self.send_error(403, "Access denied")
             return
 
@@ -223,7 +224,7 @@ def main():
     webbrowser.open(url)
 
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("", port), VEORequestHandler) as httpd:
+    with socketserver.ThreadingTCPServer((HOST, port), VEORequestHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
