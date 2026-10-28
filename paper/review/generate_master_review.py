@@ -364,3 +364,4 @@ with open(REPORT_PATH, "w", encoding="utf-8") as f:
     f.write(master_report)
 
 print(f"Successfully generated master review report: {REPORT_PATH} ({len(master_report.encode('utf-8')):,} bytes).")
+

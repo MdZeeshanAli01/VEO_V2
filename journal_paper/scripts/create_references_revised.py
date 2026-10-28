@@ -64,3 +64,4 @@ with open(out_path, "w", encoding="utf-8") as f:
     f.write(revised_bib)
 
 print(f"Successfully generated {out_path}")
+

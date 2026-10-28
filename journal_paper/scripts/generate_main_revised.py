@@ -50,3 +50,4 @@ with open(dst_tex, "w", encoding="utf-8") as f:
     f.write(text)
 
 print(f"Successfully generated {dst_tex}")
+

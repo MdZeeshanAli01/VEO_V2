@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+checkpoints/
+data/
+outputs/
+paper/
+journal_paper/
+notebooks/
+official/
+scratch/
+tests/
+docs/
