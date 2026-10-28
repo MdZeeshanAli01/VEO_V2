@@ -129,8 +129,8 @@ def main() -> None:
                 edited = predict(brighten(rgb, mask), dense)
             else:
                 edited = upscaled
-            before = region_error(original, target, valid, mask, space)
-            after = region_error(edited, target, valid, mask, space)
+            before = region_error(original, target, valid, mask, space, config.experiment.max_prediction_m)
+            after = region_error(edited, target, valid, mask, space, config.experiment.max_prediction_m)
             changes[(edit, sample_id, region_id)] = {"before": before, "after": after, "change": after - before}
 
     tests = {}

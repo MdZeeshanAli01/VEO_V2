@@ -25,6 +25,8 @@ class ExperimentConfig:
     align_scale_shift: bool = False
     prediction_space: str = "depth"
     primary_protocol: str = "inverse_depth_scale_shift"
+    # Aligned predictions are capped at this depth (metres), as in standard NYU evaluation; None = no cap
+    max_prediction_m: float | None = None
     # Failure regions: "delta" marks pixels with max(pred/gt, gt/pred) > delta_threshold;
     # "percentile" marks the image's top (100 - error_percentile)% relative errors (v1 behaviour)
     region_mode: str = "delta"

@@ -49,9 +49,10 @@ def predict_at_scale(predict: Predict, rgb: np.ndarray, scale: float) -> np.ndar
     return cv2.resize(predict(upscaled), (width, height), interpolation=cv2.INTER_AREA)
 
 
-def region_error(prediction: np.ndarray, target: np.ndarray, valid: np.ndarray, mask: np.ndarray, prediction_space: str) -> float:
+def region_error(prediction: np.ndarray, target: np.ndarray, valid: np.ndarray, mask: np.ndarray, prediction_space: str,
+                 max_depth: float | None = None) -> float:
     """Mean absolute relative error in the region after aligning the whole prediction to the target."""
-    aligned, _, _ = align_scale_shift(prediction, target, valid, prediction_space)
+    aligned, _, _ = align_scale_shift(prediction, target, valid, prediction_space, max_depth)
     pixels = mask & valid
     return float(np.mean(np.abs(aligned[pixels] - target[pixels]) / target[pixels]))
 

@@ -11,6 +11,7 @@ For each frame the model sees the original render and the same render without it
 """
 
 import argparse
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -72,7 +73,7 @@ def main() -> None:
     frames = select_frames(split_csv, camera_csv, "test", args.per_scene, args.seed)
     print(f"{len(frames)} frames from {len({f[0] for f in frames})} standard-camera test scenes", flush=True)
     fetch_frames(frames, args.cache)
-    experiment = load_config(args.config).experiment
+    experiment = replace(load_config(args.config).experiment, max_prediction_m=args.max_depth)
     predictor = TransformersDepthPredictor(args.model_id, args.device)
     space = experiment.prediction_space if experiment.align_scale_shift else "depth"
     reflective_ids = list(REFLECTIVE_NYU40)
@@ -85,16 +86,16 @@ def main() -> None:
         if valid.mean() < 0.5:
             continue
         original, diffuse = predictor.predict(sample["rgb"]), predictor.predict(sample["rgb_diffuse"])
-        before_metrics = compute_metrics(align_scale_shift(original, depth, valid, space)[0], depth, valid)
-        after_metrics = compute_metrics(align_scale_shift(diffuse, depth, valid, space)[0], depth, valid)
+        before_metrics = compute_metrics(align_scale_shift(original, depth, valid, space, args.max_depth)[0], depth, valid)
+        after_metrics = compute_metrics(align_scale_shift(diffuse, depth, valid, space, args.max_depth)[0], depth, valid)
         images.append({"scene": scene, "frame": f"{camera}/{frame}", "abs_rel_before": before_metrics["abs_rel"],
                        "abs_rel_after": after_metrics["abs_rel"], "specular_mean": float(sample["specular"][valid].mean())})
         analysis = analyze_sample(sample["rgb"], depth, original, valid, experiment)
         masks = {region["region_id"]: region["mask"] for region in compute_regions(depth, original, valid, experiment)["regions"]}
         for region in analysis["regions"]:
             mask = masks[region["region_id"]]
-            before = region_error(original, depth, valid, mask, space)
-            after = region_error(diffuse, depth, valid, mask, space)
+            before = region_error(original, depth, valid, mask, space, args.max_depth)
+            after = region_error(diffuse, depth, valid, mask, space, args.max_depth)
             rows.append({
                 "sample_id": f"{scene}/{camera}/{frame}", "region_id": region["region_id"], "scene": scene,
                 "top_cause": region["top_cause"], "labels": region["labels"], "reflection_score": region["scores"].get("reflection", 0.0),

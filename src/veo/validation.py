@@ -154,7 +154,7 @@ def export_rating_set(
         valid = make_valid_mask(depth, max_depth_m)
         prediction = np.asarray(np.load(prediction_dir / f"{sample_id}.npy"), dtype=np.float32)
         if prediction_space is not None:
-            prediction, _, _ = align_scale_shift(prediction, depth, valid, prediction_space)
+            prediction, _, _ = align_scale_shift(prediction, depth, valid, prediction_space, max_depth_m)
         error = compute_error_map(prediction, depth, valid)
         x, y, width, height = region["bbox"]
         slices = (slice(y, y + height), slice(x, x + width))

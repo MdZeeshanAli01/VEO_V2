@@ -13,7 +13,7 @@ def align_prediction(prediction: np.ndarray, target: np.ndarray, valid_mask: np.
     """Map a raw prediction to metric depth as configured; identity when alignment is disabled."""
     if not config.align_scale_shift:
         return prediction.astype(np.float32), 1.0, 0.0
-    return align_scale_shift(prediction.astype(np.float32), target, valid_mask, config.prediction_space)
+    return align_scale_shift(prediction.astype(np.float32), target, valid_mask, config.prediction_space, config.max_prediction_m)
 
 
 def failure_mask(aligned: np.ndarray, target: np.ndarray, valid_mask: np.ndarray, error_map: np.ndarray, config: ExperimentConfig) -> np.ndarray:

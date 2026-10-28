@@ -152,8 +152,9 @@ def _evaluate_alignment_protocol(
     target: np.ndarray,
     valid_mask: np.ndarray,
     protocol: str,
+    max_depth: float | None = None,
 ) -> dict:
-    evaluated, scale, shift, space = _aligned_prediction(prediction, target, valid_mask, protocol)
+    evaluated, scale, shift, space = _aligned_prediction(prediction, target, valid_mask, protocol, max_depth)
     return {
         "protocol": protocol,
         "metrics": compute_metrics(evaluated, target, valid_mask),
@@ -171,18 +172,19 @@ def _aligned_prediction(
     target: np.ndarray,
     valid_mask: np.ndarray,
     protocol: str,
+    max_depth: float | None = None,
 ) -> tuple[np.ndarray, float | None, float | None, str]:
     if protocol == "none":
         evaluated = prediction.astype(np.float32)
         scale, shift, space = None, None, "raw_inverse_depth"
     elif protocol == "direct_depth_scale_shift":
-        evaluated, scale, shift = align_scale_shift(prediction, target, valid_mask, "depth")
+        evaluated, scale, shift = align_scale_shift(prediction, target, valid_mask, "depth", max_depth)
         space = "depth"
     elif protocol == "inverse_depth_scale_shift":
-        evaluated, scale, shift = align_scale_shift(prediction, target, valid_mask, "inverse_depth")
+        evaluated, scale, shift = align_scale_shift(prediction, target, valid_mask, "inverse_depth", max_depth)
         space = "inverse_depth"
     elif protocol == "inverse_depth_scale_only":
-        evaluated, scale = align_scale_only(prediction, target, valid_mask, "inverse_depth")
+        evaluated, scale = align_scale_only(prediction, target, valid_mask, "inverse_depth", max_depth)
         shift, space = 0.0, "inverse_depth"
     else:
         raise ValueError(f"Unknown alignment protocol: {protocol}")
@@ -218,8 +220,9 @@ def _region_sensitivity(
     protocol: str,
     percentiles: tuple[float, ...],
     min_area: int,
+    max_depth: float | None = None,
 ) -> dict[str, dict[str, float]]:
-    evaluated, _, _, _ = _aligned_prediction(prediction, target, valid_mask, protocol)
+    evaluated, _, _, _ = _aligned_prediction(prediction, target, valid_mask, protocol, max_depth)
     error_map = compute_error_map(evaluated, target, valid_mask)
     result = {}
     for percentile in percentiles:
@@ -265,7 +268,7 @@ def run_alignment_ablation(
 
     def append_record(pair, rgb, target, valid_mask, prediction):
         protocol_results = {
-            protocol: _evaluate_alignment_protocol(prediction, target, valid_mask, protocol)
+            protocol: _evaluate_alignment_protocol(prediction, target, valid_mask, protocol, config.experiment.max_prediction_m)
             for protocol in protocols
         }
         records.append({
@@ -274,10 +277,12 @@ def run_alignment_ablation(
             "protocols": protocol_results,
             "region_sensitivity": {
                 "direct_depth_scale_shift": _region_sensitivity(
-                    prediction, target, valid_mask, "direct_depth_scale_shift", sensitivity_percentiles, config.experiment.min_region_area
+                    prediction, target, valid_mask, "direct_depth_scale_shift", sensitivity_percentiles, config.experiment.min_region_area,
+                    config.experiment.max_prediction_m,
                 ),
                 "inverse_depth_scale_shift": _region_sensitivity(
-                    prediction, target, valid_mask, "inverse_depth_scale_shift", sensitivity_percentiles, config.experiment.min_region_area
+                    prediction, target, valid_mask, "inverse_depth_scale_shift", sensitivity_percentiles, config.experiment.min_region_area,
+                    config.experiment.max_prediction_m,
                 ),
             },
         })

@@ -38,7 +38,7 @@ def main() -> None:
         sample_id = record["sample_id"]
         target = np.load(args.depth_dir / f"{sample_id}.npy")
         valid = make_valid_mask(target, args.max_depth)
-        aligned, _, _ = align_scale_shift(np.load(args.prediction_dir / f"{sample_id}.npy"), target, valid, "inverse_depth")
+        aligned, _, _ = align_scale_shift(np.load(args.prediction_dir / f"{sample_id}.npy"), target, valid, "inverse_depth", args.max_depth)
         error = compute_error_map(aligned, target, valid)
         threshold = float(np.percentile(error[valid], args.percentile))
         mask = np.zeros_like(valid)

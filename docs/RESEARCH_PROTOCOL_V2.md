@@ -58,3 +58,7 @@ Frozen on 2026-10-28, before any v2 result on the NYU official test split was co
 
 1. *Speckle-cleanup sensitivity.* Added a fifth failure rule, δ 1.25 with a 1 px morphological opening, to the sensitivity table. It measures how many thin failure regions an opening would erase. The primary rule is unchanged (no opening).
 2. *Thin structures without ground truth.* Added `thin_image_fraction`, the share of region pixels on or next to a thin bright or dark image line (top-hat / black-hat of grey level, 9 px window, > 25 grey levels). When `geometry_source` is `prediction`, the thin-object evidence is the larger of the depth cue and this image cue, because a model that misses a thin object usually removes it from its own depth map too. Audit mode (ground-truth geometry) is unchanged.
+
+**2026-10-28, after the first NYU v2 run (post-hoc, disclosed):**
+
+3. *Cap on aligned predictions.* The first run showed DPT-Hybrid with mean AbsRel 12.5 and RMSE 421 m although δ1 was 0.918. In 2 of 654 images the inverse-depth fit maps some pixels to zero or negative disparity, which then became depths of up to 10^6 m. Aligned predictions are now capped at the evaluation range (`max_prediction_m: 10` for NYU; 20 m in the Hypersim test), as in standard NYU evaluation, and all v2 results were regenerated. This changes only pixels whose aligned depth exceeded the cap. It was decided after seeing results, so it is recorded here as a post-hoc correction of a numerical defect, not a pre-registered choice.
