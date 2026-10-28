@@ -2,7 +2,7 @@
 Vision Error Observatory (VEO) - High-Performance Local HTTP Server
 Features:
 - Seamless byte-range support (HTTP 206 Partial Content) for smooth MP4 video playback & seeking
-- Comprehensive MIME type mapping (mp4, css, js, json, svg, pdf, woff2, ico)
+- MIME type mapping (mp4, css, js, json, svg, woff2, ico)
 - Fallback route alias for legacy links (/figures/* -> /assets/*)
 - Automatic port fallback (8000 -> 8001 -> 8080) if port is in use
 - Zero external dependencies; runs on standard library
@@ -77,32 +77,6 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
                 target = self.contained(DIRECTORY / "assets" / clean_path[len(prefix):])
                 if target is not None and target.is_file():
                     self.serve_file(target, head_only=head_only)
-                    return
-
-        if clean_path == "/favicon.ico":
-            fav = DIRECTORY / "favicon.ico"
-            if not fav.exists():
-                fav = DIRECTORY / "assets" / "favicon.ico"
-            if fav.exists():
-                self.serve_file(fav, head_only=head_only)
-                return
-
-        # Universal Font Fallback: intercepts any request for .woff2, .woff, .ttf, or fa-*
-        clean_name = Path(clean_path).name
-        if clean_path.endswith((".woff2", ".woff", ".ttf")) or "fa-" in clean_path or "webfonts" in clean_path:
-            candidates = [
-                DIRECTORY / "assets" / "webfonts" / clean_name,
-                DIRECTORY / "assets" / "fontawesome" / "webfonts" / clean_name,
-                DIRECTORY / "webfonts" / clean_name,
-                DIRECTORY / clean_name,
-                DIRECTORY / "assets" / "webfonts" / clean_name.replace(".ttf", ".woff2"),
-                DIRECTORY / "assets" / "fontawesome" / "webfonts" / clean_name.replace(".ttf", ".woff2"),
-                DIRECTORY / "webfonts" / clean_name.replace(".ttf", ".woff2"),
-                DIRECTORY / clean_name.replace(".ttf", ".woff2"),
-            ]
-            for candidate in candidates:
-                if candidate.is_file():
-                    self.serve_file(candidate, head_only=head_only)
                     return
 
         # Handle regular files with byte-range support for videos

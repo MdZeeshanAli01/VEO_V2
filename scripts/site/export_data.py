@@ -95,7 +95,7 @@ def main():
     rgb_dir = Path("data/nyu/splits/test/rgb")
     depth_dir = Path("data/nyu/splits/test/depth")
     pred_dir = Path("outputs/alignment_ablation_full/test/predictions")
-    out_json = Path("web_app/data/app_data_v2.json")
+    out_js = Path("web_app/data/app_data_v2.js")
 
     scenes_output = []
 
@@ -327,12 +327,12 @@ def main():
         ]
     }
 
-    out_json.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_json, "w", encoding="utf-8") as f:
-        json.dump(payload, f)
+    # The pages load the payload as a script that sets window.VEO_DATA
+    out_js.parent.mkdir(parents=True, exist_ok=True)
+    out_js.write_text(f"window.VEO_DATA = {json.dumps(payload)};", encoding="utf-8")
 
-    print(f"\n[OK] Successfully generated VEO Redesign Application Data file at:")
-    print(f"     {out_json.resolve()} (Size: {out_json.stat().st_size / (1024*1024):.2f} MB)")
+    print("\n[OK] Generated site data file at:")
+    print(f"     {out_js.resolve()} (Size: {out_js.stat().st_size / (1024*1024):.2f} MB)")
 
 if __name__ == "__main__":
     main()
