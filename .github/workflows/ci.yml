@@ -14,6 +14,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1
       - name: Install
         run: uv sync --python 3.11 --extra dev --frozen
+      - name: Fetch site assets
+        run: python web_app/fetch_assets.py
       - name: Lint
         run: uv run ruff check .
       - name: Tests
