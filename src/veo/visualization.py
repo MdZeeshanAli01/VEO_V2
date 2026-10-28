@@ -1,11 +1,12 @@
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.figure import Figure
 
 
 def save_panel(rgb: np.ndarray, target: np.ndarray, prediction: np.ndarray, error_map: np.ndarray, output_path: Path, title: str) -> None:
-    figure, axes = plt.subplots(1, 4, figsize=(16, 4))
+    figure = Figure(figsize=(16, 4))  # no pyplot, so no GUI backend is needed
+    axes = figure.subplots(1, 4)
     axes[0].imshow(rgb)
     axes[0].set_title("RGB")
     axes[1].imshow(prediction, cmap="magma")
@@ -20,4 +21,3 @@ def save_panel(rgb: np.ndarray, target: np.ndarray, prediction: np.ndarray, erro
     figure.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path, dpi=120)
-    plt.close(figure)

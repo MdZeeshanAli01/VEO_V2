@@ -3,8 +3,8 @@ import json
 from collections import Counter
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.figure import Figure
 
 from .data import load_depth, load_rgb, make_valid_mask
 from .metrics import align_scale_shift, compute_error_map
@@ -159,7 +159,8 @@ def export_rating_set(
         error = compute_error_map(prediction, depth, valid)
         x, y, width, height = region["bbox"]
         slices = (slice(y, y + height), slice(x, x + width))
-        figure, axes = plt.subplots(1, 4, figsize=(12, 3))
+        figure = Figure(figsize=(12, 3))  # no pyplot, so no GUI backend is needed
+        axes = figure.subplots(1, 4)
         axes[0].imshow(rgb[slices])
         axes[0].set_title("RGB")
         axes[1].imshow(depth[slices], cmap="magma")
@@ -173,7 +174,6 @@ def export_rating_set(
         panel_path = panel_dir / f"rating_{rating_index:04d}.png"
         figure.tight_layout()
         figure.savefig(panel_path, dpi=120)
-        plt.close(figure)
         rows.append({"rating_id": f"rating_{rating_index:04d}", "panel_path": str(panel_path), "sample_id": sample_id, "human_label": "", "human_confidence": "", "notes": ""})
     with (output_dir / "rating_template.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
