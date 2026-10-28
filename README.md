@@ -27,7 +27,7 @@ Monocular Depth Estimation (MDE) foundation models have reached impressive globa
 
 **Vision Error Observatory (VEO)** is a model-agnostic post-hoc diagnostic framework that aims to move depth evaluation from scalar scoring toward region-level failure attribution. Decoupled from model weights and training gradients, VEO ingests standard prediction arrays, performs inverse-depth scale-shift alignment, isolates high-error regions via connected-components analysis, extracts 7 hand-designed visual evidence features, and assigns each region a failure hypothesis using rule-based scores with a fixed-threshold ambiguity gate (abstains when the top score is < 0.40 or the margin is < 0.10).
 
-> **Status: under revision (v2).** The v1 results below are reported in full, including the unfavourable ones. Several v1 claims were overstated and have been corrected here; the original state is preserved at the git tag `v1-archive`. Known limitations of v1 are listed at the end of the findings.
+> **Status: under revision (v2).** The v1 results below are reported in full, including the unfavourable ones. Several v1 claims were overstated and have been corrected here; the original state is preserved at the git tag `v1-archive`, and every correction is listed in [`docs/ERRATA_V1.md`](docs/ERRATA_V1.md). Known limitations of v1 are listed at the end of the findings.
 
 <div align="center">
   <img src="figures/fig1_veo_architecture.png" alt="VEO Architecture" width="95%"/>

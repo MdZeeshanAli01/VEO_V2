@@ -1,3 +1,5 @@
+> **Errata (phase 0 revision):** some claims in this v1 document are overstated or incorrect, including the headline human-agreement figure and Figure 2(a). See [ERRATA_V1.md](../docs/ERRATA_V1.md) for the corrections.
+
 # VEO Conference Manuscript Package
 
 This directory contains the finalized, publication-ready research paper for the Vision Error Observatory (VEO) framework, formatted according to IEEE Computer Society conference specifications.

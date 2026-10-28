@@ -1,3 +1,8 @@
+> **SUBMISSION ON HOLD (phase 0 revision).** Do not submit this manuscript yet. The v1 results need the corrections in
+> [../docs/ERRATA_V1.md](../docs/ERRATA_V1.md), and the planned v2 work (raw-depth ground truth, official NYU split, calibrated
+> features, a larger human study, model-in-the-loop tests) is required before the claims can support a journal submission.
+> `main_revised.pdf` is also out of date with `main_revised.tex`.
+
 # Journal Submission Readiness Checklist
 
 > **Framework:** Vision Error Observatory (VEO)  

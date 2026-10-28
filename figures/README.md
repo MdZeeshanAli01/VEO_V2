@@ -1,3 +1,5 @@
+> **Errata (phase 0 revision):** some claims in this v1 document are overstated or incorrect, including the headline human-agreement figure and Figure 2(a). See [ERRATA_V1.md](../docs/ERRATA_V1.md) for the corrections.
+
 # Publication Figures
 
 This directory contains high-resolution (300 DPI) figures generated for the VEO conference manuscript.

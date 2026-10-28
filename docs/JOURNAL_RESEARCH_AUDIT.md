@@ -1,3 +1,5 @@
+> **Errata (phase 0 revision):** some claims in this v1 document are overstated or incorrect, including the headline human-agreement figure and Figure 2(a). See [ERRATA_V1.md](ERRATA_V1.md) for the corrections.
+
 # Journal Research Audit: Vision Error Observatory (VEO)
 
 > **Document Version:** 1.0  
