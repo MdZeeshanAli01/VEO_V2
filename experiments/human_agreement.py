@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from veo_nyu.validation import cohens_kappa
+from veo.validation import cohens_kappa
 
 
 def load_veo_test_labels(results_path: Path, count: int = 50, seed: int = 42) -> dict[str, str]:

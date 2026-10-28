@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 import cv2
 
-from veo_nyu.data import load_rgb, load_depth
-from veo_nyu.features import extract_features
-from veo_nyu.scoring import classify
+from veo.data import load_rgb, load_depth
+from veo.features import extract_features
+from veo.scoring import classify
 
 def main():
     results_path = Path("outputs/nyu_final/test/model_results.json")

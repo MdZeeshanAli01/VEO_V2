@@ -1,15 +1,15 @@
 import numpy as np
 from PIL import Image
 
-from veo_nyu.data import discover_pairs, load_depth, validate_pairs
-from veo_nyu.features import extract_features
-from veo_nyu.inference import PrecomputedPredictor
-from veo_nyu.metrics import align_scale_only, align_scale_shift, compute_metrics
-from veo_nyu.nyu_dataset import create_scene_splits, extract_labeled_mat
-from veo_nyu.regions import extract_failure_regions
-from veo_nyu.reports import write_summary
-from veo_nyu.scoring import classify
-from veo_nyu.validation import cohens_kappa
+from veo.data import discover_pairs, load_depth, validate_pairs
+from veo.features import extract_features
+from veo.inference import PrecomputedPredictor
+from veo.metrics import align_scale_only, align_scale_shift, compute_metrics
+from veo.nyu_dataset import create_scene_splits, extract_labeled_mat
+from veo.regions import extract_failure_regions
+from veo.reports import write_summary
+from veo.scoring import classify
+from veo.validation import cohens_kappa
 
 
 def test_alignment_recovers_affine_depth():

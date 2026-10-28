@@ -15,7 +15,7 @@ ALIGNMENT_ABLATION = Path("outputs/alignment_ablation_full/test/alignment_ablati
 
 
 def load_alignment_scales(path=ALIGNMENT_ABLATION):
-    """Per-scene fitted scales from `veo-nyu compare-alignment`, or None if the file is absent."""
+    """Per-scene fitted scales from `veo compare-alignment`, or None if the file is absent."""
     if not path.exists():
         return None
     records = json.loads(path.read_text(encoding="utf-8"))["records"]

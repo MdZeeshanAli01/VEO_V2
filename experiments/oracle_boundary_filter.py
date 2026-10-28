@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import cv2
 
-from veo_nyu.metrics import align_scale_shift, compute_metrics
+from veo.metrics import align_scale_shift, compute_metrics
 
 def main():
     results_path = Path("outputs/nyu_final/test/model_results.json")

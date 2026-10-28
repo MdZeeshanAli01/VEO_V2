@@ -40,7 +40,7 @@ def configured(args, config: Config, max_depth: float | None = None) -> Config:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="veo-nyu")
+    parser = argparse.ArgumentParser(prog="veo")
     parser.add_argument("command", choices=["smoke", "manifest", "prepare-nyu-splits", "extract-nyu", "evaluate-splits", "compare-alignment", "prepare-rating", "run-precomputed", "run-model", "run-official-metric"])
     parser.add_argument("--config", type=Path, default=Path("configs/nyu.yaml"))
     parser.add_argument("--rgb-dir", type=Path)

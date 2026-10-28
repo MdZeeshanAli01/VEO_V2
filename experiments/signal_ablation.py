@@ -1,7 +1,7 @@
 import csv
 import json
 from pathlib import Path
-from veo_nyu.validation import ablation_change
+from veo.validation import ablation_change
 
 def main():
     results_path = Path("outputs/nyu_final/test/model_results.json")

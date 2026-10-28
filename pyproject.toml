@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "veo-nyu"
+name = "veo"
 version = "0.1.0"
-description = "NYU RGB-D region-level failure diagnosis for monocular depth estimation"
+description = "Region-level failure localisation and attribution for monocular depth estimation"
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.24",
@@ -23,11 +23,11 @@ dev = ["pytest>=7.4", "ruff>=0.5"]
 dataset = ["requests>=2.31"]
 
 [project.scripts]
-veo-nyu = "veo_nyu.cli:main"
+veo = "veo.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["veo_nyu*"]
+include = ["veo*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
