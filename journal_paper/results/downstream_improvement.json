@@ -1,0 +1,41 @@
+{
+  "evaluated_scenes": 207,
+  "regional_metrics": {
+    "rmse_before": 0.662876307964325,
+    "rmse_after": 0.6618005633354187,
+    "rmse_improvement_pct": 0.16228437423706055,
+    "absrel_before": 0.23480775952339172,
+    "absrel_after": 0.2339758723974228,
+    "absrel_improvement_pct": 0.3542843461036682
+  },
+  "global_metrics": {
+    "rmse_before": 0.46576674335718715,
+    "rmse_after": 0.4657644969011084,
+    "rmse_improvement_pct": 0.0004823135423060091
+  },
+  "actionable_debugging_matrix": {
+    "depth_anything_v2": {
+      "dominant_weakness": [
+        "textureless (19.5%)",
+        "boundary_mixing (18.0%)"
+      ],
+      "root_cause_analysis": "ViT patch tokenization tends to smooth depth transitions across low-frequency walls and high-frequency silhouettes.",
+      "prescriptive_interventions": [
+        "Loss formulation: Add edge-aware depth gradient loss (L_grad = |grad(d) - grad(d*)|) to penalize boundary bleeding.",
+        "Data augmentation: Apply random Perlin noise and CutBlur texture injection to force ViT to utilize geometric context over surface texture.",
+        "Inference post-processing: VEO-guided selective bilateral boundary filtering."
+      ]
+    },
+    "dpt_hybrid_midas": {
+      "dominant_weakness": [
+        "reflection (17.4%)",
+        "poor_lighting (7.8%)"
+      ],
+      "root_cause_analysis": "Convolutional hybrid tokens suffer from specular highlight confounds, interpreting glossy floor reflections as deep virtual space.",
+      "prescriptive_interventions": [
+        "Photometric loss masking: Apply HSV specular mask attenuation (V>200, S<40) during unsupervised photometric consistency.",
+        "Polarized synthetic training: Augment training splits with non-Lambertian synthetic rendering (e.g. Hypersim diffuse vs residual passes)."
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "num_samples": 244,
+  "num_regions": 5236,
+  "mean_metrics": {
+    "mae": 0.29604261511498,
+    "rmse": 0.4663963515805961,
+    "abs_rel": 0.10397544398054306,
+    "sq_rel": 0.08050171262203715,
+    "delta1": 0.896471834443306,
+    "delta2": 0.9656371803492145,
+    "delta3": 0.9865189816000682,
+    "spearman": 0.910364407339626
+  },
+  "cause_counts": {
+    "ambiguous": 2059,
+    "reflection": 687,
+    "boundary_mixing": 944,
+    "thin_object": 152,
+    "textureless": 1021,
+    "poor_lighting": 351,
+    "occlusion": 22
+  }
+}

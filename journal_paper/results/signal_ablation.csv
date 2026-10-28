@@ -1,0 +1,8 @@
+signal,neutral_replacement,changed_regions,total_regions,sensitivity_percentage
+texture_var,500.0 (High Texture),2004,5236,38.27
+contrast,60.0 (Normal Contrast),1307,5236,24.96
+brightness,128.0 (Mid-Gray),1307,5236,24.96
+edge_density,0.0 (Zero Edges),1220,5236,23.3
+highlight_ratio,0.0 (Zero Highlights),955,5236,18.24
+aspect_ratio,1.0 (Square BBox),384,5236,7.33
+depth_discontinuity,0.0 (Flat Depth),53,5236,1.01

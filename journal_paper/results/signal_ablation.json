@@ -1,0 +1,51 @@
+[
+  {
+    "signal": "texture_var",
+    "neutral_replacement": "500.0 (High Texture)",
+    "changed_regions": 2004,
+    "total_regions": 5236,
+    "sensitivity_percentage": 38.27
+  },
+  {
+    "signal": "contrast",
+    "neutral_replacement": "60.0 (Normal Contrast)",
+    "changed_regions": 1307,
+    "total_regions": 5236,
+    "sensitivity_percentage": 24.96
+  },
+  {
+    "signal": "brightness",
+    "neutral_replacement": "128.0 (Mid-Gray)",
+    "changed_regions": 1307,
+    "total_regions": 5236,
+    "sensitivity_percentage": 24.96
+  },
+  {
+    "signal": "edge_density",
+    "neutral_replacement": "0.0 (Zero Edges)",
+    "changed_regions": 1220,
+    "total_regions": 5236,
+    "sensitivity_percentage": 23.3
+  },
+  {
+    "signal": "highlight_ratio",
+    "neutral_replacement": "0.0 (Zero Highlights)",
+    "changed_regions": 955,
+    "total_regions": 5236,
+    "sensitivity_percentage": 18.24
+  },
+  {
+    "signal": "aspect_ratio",
+    "neutral_replacement": "1.0 (Square BBox)",
+    "changed_regions": 384,
+    "total_regions": 5236,
+    "sensitivity_percentage": 7.33
+  },
+  {
+    "signal": "depth_discontinuity",
+    "neutral_replacement": "0.0 (Flat Depth)",
+    "changed_regions": 53,
+    "total_regions": 5236,
+    "sensitivity_percentage": 1.01
+  }
+]

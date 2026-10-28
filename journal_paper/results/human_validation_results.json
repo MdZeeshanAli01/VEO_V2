@@ -1,0 +1,125 @@
+{
+  "num_regions": 50,
+  "cohens_kappa_r1_veo": 0.25925925925925924,
+  "cohens_kappa_inter": 0.3478260869565218,
+  "cohens_kappa_r2_veo": 0.13751796837565886,
+  "macro_f1": 0.2619162873739533,
+  "per_class": {
+    "ambiguous": {
+      "precision": 0.047619047619047616,
+      "recall": 0.5,
+      "f1-score": 0.08695652173913042,
+      "support": 2
+    },
+    "boundary_mixing": {
+      "precision": 0.7142857142857143,
+      "recall": 0.2631578947368421,
+      "f1-score": 0.3846153846153846,
+      "support": 19
+    },
+    "occlusion": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 2
+    },
+    "poor_lighting": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 5
+    },
+    "reflection": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 2
+    },
+    "textureless": {
+      "precision": 0.875,
+      "recall": 0.6363636363636364,
+      "f1-score": 0.7368421052631579,
+      "support": 11
+    },
+    "thin_object": {
+      "precision": 0.7142857142857143,
+      "recall": 0.5555555555555556,
+      "f1-score": 0.6250000000000001,
+      "support": 9
+    }
+  },
+  "confusion_matrix": {
+    "ambiguous": {
+      "ambiguous": 1,
+      "boundary_mixing": 0,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 1,
+      "textureless": 0,
+      "thin_object": 0
+    },
+    "boundary_mixing": {
+      "ambiguous": 7,
+      "boundary_mixing": 5,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 5,
+      "textureless": 1,
+      "thin_object": 1
+    },
+    "occlusion": {
+      "ambiguous": 0,
+      "boundary_mixing": 1,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 1,
+      "textureless": 0,
+      "thin_object": 0
+    },
+    "poor_lighting": {
+      "ambiguous": 4,
+      "boundary_mixing": 0,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 0,
+      "textureless": 0,
+      "thin_object": 1
+    },
+    "reflection": {
+      "ambiguous": 2,
+      "boundary_mixing": 0,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 0,
+      "textureless": 0,
+      "thin_object": 0
+    },
+    "textureless": {
+      "ambiguous": 4,
+      "boundary_mixing": 0,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 0,
+      "textureless": 7,
+      "thin_object": 0
+    },
+    "thin_object": {
+      "ambiguous": 3,
+      "boundary_mixing": 1,
+      "occlusion": 0,
+      "poor_lighting": 0,
+      "reflection": 0,
+      "textureless": 0,
+      "thin_object": 5
+    }
+  },
+  "classes": [
+    "ambiguous",
+    "boundary_mixing",
+    "occlusion",
+    "poor_lighting",
+    "reflection",
+    "textureless",
+    "thin_object"
+  ]
+}

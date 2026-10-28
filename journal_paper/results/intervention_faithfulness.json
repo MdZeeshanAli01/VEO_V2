@@ -1,0 +1,16 @@
+{
+  "sample_id": "scene_0049",
+  "region_id": 8,
+  "intervention": "high_frequency_texture_injection",
+  "before": {
+    "texture_var": 176.81978579882153,
+    "textureless_score": 0.646360428402357,
+    "top_cause": "textureless"
+  },
+  "after": {
+    "texture_var": 689.3882422784296,
+    "textureless_score": 0.0,
+    "top_cause": "ambiguous"
+  },
+  "faithful": true
+}

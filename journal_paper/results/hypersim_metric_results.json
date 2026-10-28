@@ -1,0 +1,1447 @@
+{
+  "model": "metric_hypersim_vits",
+  "config": {
+    "dataset": {
+      "name": "hypersim",
+      "rgb_dir": "data\\hypersim\\rgb",
+      "depth_dir": "data\\hypersim\\depth",
+      "manifest": "data\\hypersim\\manifest.txt",
+      "depth_scale": 1.0,
+      "max_depth_m": 20.0,
+      "split": "official_train_or_val"
+    },
+    "experiment": {
+      "model_name": "metric_hypersim_vits",
+      "align_scale_shift": false,
+      "error_percentile": 85.0,
+      "min_region_area": 25,
+      "include_reflection": true,
+      "random_seed": 42
+    },
+    "outputs": {
+      "directory": "outputs\\hypersim"
+    }
+  },
+  "records": [
+    {
+      "sample_id": "frame.0000.tonemap",
+      "metrics": {
+        "abs_rel": 0.025895559470281337,
+        "rmse": 0.10264315647849966,
+        "delta1": 0.9983736673990885
+      },
+      "alignment": {
+        "scale": 1.0,
+        "shift": 0.0,
+        "enabled": false
+      },
+      "threshold": 0.04454522207379341,
+      "num_regions": 45,
+      "regions": [
+        {
+          "region_id": 2,
+          "bbox": [
+            739,
+            0,
+            285,
+            271
+          ],
+          "area": 29324,
+          "mean_error": 0.059332575649023056,
+          "features": {
+            "texture_var": 283.70849407778354,
+            "edge_density": 0.0061383167371436365,
+            "brightness": 153.38995362160688,
+            "contrast": 16.843648478811932,
+            "highlight_ratio": 0.009173373346064656,
+            "aspect_ratio": 1.051660516605166,
+            "depth_discontinuity": 0.0062941317446529865,
+            "mean_depth_m": 2.5661302258160688
+          },
+          "scores": {
+            "textureless": 0.43258301184443293,
+            "boundary_mixing": 0.01841495021143091,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.0062941317446529865,
+            "reflection": 0.04586686673032328
+          },
+          "top_cause": "textureless",
+          "confidence": "Medium"
+        },
+        {
+          "region_id": 54,
+          "bbox": [
+            608,
+            42,
+            90,
+            15
+          ],
+          "area": 330,
+          "mean_error": 0.060841068625450134,
+          "features": {
+            "texture_var": 23.6776492194674,
+            "edge_density": 0.0,
+            "brightness": 164.75151515151515,
+            "contrast": 4.8659684770318234,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 6.0,
+            "depth_discontinuity": 0.05274668708443642,
+            "mean_depth_m": 3.276971932540186
+          },
+          "scores": {
+            "textureless": 0.9526447015610652,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.6,
+            "occlusion": 0.05274668708443642,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 66,
+          "bbox": [
+            699,
+            57,
+            36,
+            10
+          ],
+          "area": 136,
+          "mean_error": 0.05155220255255699,
+          "features": {
+            "texture_var": 11.647869809688583,
+            "edge_density": 0.0,
+            "brightness": 174.9191176470588,
+            "contrast": 3.4128975680041416,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 3.6,
+            "depth_discontinuity": 0.027445588260889053,
+            "mean_depth_m": 3.2506013328853403
+          },
+          "scores": {
+            "textureless": 0.9767042603806229,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.12000000000000002,
+            "occlusion": 0.027445588260889053,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 88,
+          "bbox": [
+            724,
+            96,
+            22,
+            28
+          ],
+          "area": 155,
+          "mean_error": 0.05580564960837364,
+          "features": {
+            "texture_var": 32.07883454734652,
+            "edge_density": 0.04516129032258064,
+            "brightness": 157.07096774193548,
+            "contrast": 5.663818018558375,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.2727272727272727,
+            "depth_discontinuity": 0.025936871767044067,
+            "mean_depth_m": 3.2477474310266086
+          },
+          "scores": {
+            "textureless": 0.935842330905307,
+            "boundary_mixing": 0.13548387096774192,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.025936871767044067,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 103,
+          "bbox": [
+            726,
+            122,
+            9,
+            12
+          ],
+          "area": 48,
+          "mean_error": 0.04875544086098671,
+          "features": {
+            "texture_var": 331.0481770833333,
+            "edge_density": 0.22916666666666666,
+            "brightness": 138.3125,
+            "contrast": 18.1947293764797,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.3333333333333333,
+            "depth_discontinuity": 0.0049927327781915665,
+            "mean_depth_m": 3.3602881724595064
+          },
+          "scores": {
+            "textureless": 0.3379036458333333,
+            "boundary_mixing": 0.6875,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.0049927327781915665,
+            "reflection": 0.0
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "High"
+        },
+        {
+          "region_id": 126,
+          "bbox": [
+            270,
+            153,
+            39,
+            101
+          ],
+          "area": 1450,
+          "mean_error": 0.04732281342148781,
+          "features": {
+            "texture_var": 79.60832770511296,
+            "edge_density": 0.021379310344827585,
+            "brightness": 191.2558620689655,
+            "contrast": 8.92234989815536,
+            "highlight_ratio": 0.3275862068965517,
+            "aspect_ratio": 2.58974358974359,
+            "depth_discontinuity": 0.00422062398865819,
+            "mean_depth_m": 3.359645127268189
+          },
+          "scores": {
+            "textureless": 0.8407833445897741,
+            "boundary_mixing": 0.06413793103448276,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.00422062398865819,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 154,
+          "bbox": [
+            394,
+            185,
+            6,
+            13
+          ],
+          "area": 41,
+          "mean_error": 0.054435353726148605,
+          "features": {
+            "texture_var": 34.0464009518144,
+            "edge_density": 0.0,
+            "brightness": 155.0487804878049,
+            "contrast": 5.834929387046119,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.1666666666666665,
+            "depth_discontinuity": 0.024564852938055992,
+            "mean_depth_m": 3.6984757384550067
+          },
+          "scores": {
+            "textureless": 0.9319071980963712,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.024564852938055992,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 206,
+          "bbox": [
+            442,
+            241,
+            14,
+            26
+          ],
+          "area": 232,
+          "mean_error": 0.04676282778382301,
+          "features": {
+            "texture_var": 95.69528463139117,
+            "edge_density": 0.0,
+            "brightness": 152.35775862068965,
+            "contrast": 9.782396671132856,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.8571428571428572,
+            "depth_discontinuity": 0.005316873546689749,
+            "mean_depth_m": 3.8721357935531384
+          },
+          "scores": {
+            "textureless": 0.8086094307372176,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.005316873546689749,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 207,
+          "bbox": [
+            911,
+            241,
+            19,
+            7
+          ],
+          "area": 69,
+          "mean_error": 0.046631477773189545,
+          "features": {
+            "texture_var": 1.0035706784289018,
+            "edge_density": 0.0,
+            "brightness": 134.15942028985506,
+            "contrast": 1.0017837483353889,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.7142857142857144,
+            "depth_discontinuity": 0.0018187097739428282,
+            "mean_depth_m": 2.8004785438098923
+          },
+          "scores": {
+            "textureless": 0.9979928586431422,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.0018187097739428282,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 214,
+          "bbox": [
+            163,
+            249,
+            20,
+            44
+          ],
+          "area": 354,
+          "mean_error": 0.04713215306401253,
+          "features": {
+            "texture_var": 27.4418669603243,
+            "edge_density": 0.00847457627118644,
+            "brightness": 204.72598870056498,
+            "contrast": 5.238498540643521,
+            "highlight_ratio": 0.9096045197740112,
+            "aspect_ratio": 2.2,
+            "depth_discontinuity": 0.0033902067225426435,
+            "mean_depth_m": 2.942567883591362
+          },
+          "scores": {
+            "textureless": 0.9451162660793514,
+            "boundary_mixing": 0.025423728813559324,
+            "poor_lighting": 0.9126916909892746,
+            "thin_object": 0.0,
+            "occlusion": 0.0033902067225426435,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 226,
+          "bbox": [
+            185,
+            260,
+            161,
+            260
+          ],
+          "area": 22875,
+          "mean_error": 0.058681655675172806,
+          "features": {
+            "texture_var": 1998.8393314122247,
+            "edge_density": 0.0839344262295082,
+            "brightness": 201.99641530054646,
+            "contrast": 44.70838099743967,
+            "highlight_ratio": 0.5371366120218579,
+            "aspect_ratio": 1.6149068322981366,
+            "depth_discontinuity": 0.0056478483602404594,
+            "mean_depth_m": 3.6550665731211307
+          },
+          "scores": {
+            "textureless": 0.0,
+            "boundary_mixing": 0.2518032786885246,
+            "poor_lighting": 0.25486031670933884,
+            "thin_object": 0.0,
+            "occlusion": 0.0056478483602404594,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 246,
+          "bbox": [
+            414,
+            274,
+            13,
+            15
+          ],
+          "area": 91,
+          "mean_error": 0.045211311429739,
+          "features": {
+            "texture_var": 40.23741094070764,
+            "edge_density": 0.0,
+            "brightness": 221.93406593406593,
+            "contrast": 6.3432965357696816,
+            "highlight_ratio": 1.0,
+            "aspect_ratio": 1.1538461538461537,
+            "depth_discontinuity": 0.005163379479199648,
+            "mean_depth_m": 3.802606543264279
+          },
+          "scores": {
+            "textureless": 0.9195251781185847,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.8942783910705053,
+            "thin_object": 0.0,
+            "occlusion": 0.005163379479199648,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 249,
+          "bbox": [
+            81,
+            277,
+            39,
+            16
+          ],
+          "area": 377,
+          "mean_error": 0.05559210851788521,
+          "features": {
+            "texture_var": 101.32030760787735,
+            "edge_density": 0.03713527851458886,
+            "brightness": 182.10610079575596,
+            "contrast": 10.065798905594992,
+            "highlight_ratio": 0.04774535809018567,
+            "aspect_ratio": 2.4375,
+            "depth_discontinuity": 0.00990179181098938,
+            "mean_depth_m": 2.8390029130780965
+          },
+          "scores": {
+            "textureless": 0.7973593847842453,
+            "boundary_mixing": 0.11140583554376657,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.00990179181098938,
+            "reflection": 0.23872679045092837
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 258,
+          "bbox": [
+            421,
+            293,
+            6,
+            8
+          ],
+          "area": 30,
+          "mean_error": 0.045033667236566544,
+          "features": {
+            "texture_var": 92.46222222222222,
+            "edge_density": 0.0,
+            "brightness": 199.73333333333332,
+            "contrast": 9.61572785712149,
+            "highlight_ratio": 0.7333333333333333,
+            "aspect_ratio": 1.3333333333333333,
+            "depth_discontinuity": 0.005248052068054676,
+            "mean_depth_m": 3.8531657528247956
+          },
+          "scores": {
+            "textureless": 0.8150755555555556,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.005248052068054676,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 263,
+          "bbox": [
+            424,
+            304,
+            6,
+            18
+          ],
+          "area": 59,
+          "mean_error": 0.0449528768658638,
+          "features": {
+            "texture_var": 29.157713300775644,
+            "edge_density": 0.0,
+            "brightness": 157.83050847457628,
+            "contrast": 5.399788264439231,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 3.0,
+            "depth_discontinuity": 0.005244790576398373,
+            "mean_depth_m": 3.907830551710468
+          },
+          "scores": {
+            "textureless": 0.9416845733984487,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.005244790576398373,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 265,
+          "bbox": [
+            398,
+            308,
+            11,
+            21
+          ],
+          "area": 86,
+          "mean_error": 0.04520720615983009,
+          "features": {
+            "texture_var": 2.1018117901568423,
+            "edge_density": 0.0,
+            "brightness": 226.59302325581396,
+            "contrast": 1.4497626668378663,
+            "highlight_ratio": 1.0,
+            "aspect_ratio": 1.9090909090909092,
+            "depth_discontinuity": 0.0051650735549628735,
+            "mean_depth_m": 3.8058296196601273
+          },
+          "scores": {
+            "textureless": 0.9957963764196863,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.9758372888860356,
+            "thin_object": 0.0,
+            "occlusion": 0.0051650735549628735,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 273,
+          "bbox": [
+            225,
+            320,
+            8,
+            25
+          ],
+          "area": 44,
+          "mean_error": 0.054058123379945755,
+          "features": {
+            "texture_var": 187.59504132231405,
+            "edge_density": 0.34090909090909094,
+            "brightness": 165.63636363636363,
+            "contrast": 13.696533916371472,
+            "highlight_ratio": 0.022727272727272728,
+            "aspect_ratio": 3.125,
+            "depth_discontinuity": 0.08255278319120407,
+            "mean_depth_m": 3.1595094315003736
+          },
+          "scores": {
+            "textureless": 0.6248099173553718,
+            "boundary_mixing": 1.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.025,
+            "occlusion": 0.08255278319120407,
+            "reflection": 0.11363636363636365
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "High"
+        },
+        {
+          "region_id": 286,
+          "bbox": [
+            212,
+            346,
+            13,
+            20
+          ],
+          "area": 135,
+          "mean_error": 0.05567324906587601,
+          "features": {
+            "texture_var": 98.86222222222223,
+            "edge_density": 0.07407407407407407,
+            "brightness": 152.93333333333334,
+            "contrast": 9.942948366667817,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.5384615384615385,
+            "depth_discontinuity": 0.02512277103960514,
+            "mean_depth_m": 3.161639587486316
+          },
+          "scores": {
+            "textureless": 0.8022755555555555,
+            "boundary_mixing": 0.2222222222222222,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.02512277103960514,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 289,
+          "bbox": [
+            370,
+            360,
+            8,
+            19
+          ],
+          "area": 62,
+          "mean_error": 0.045557860285043716,
+          "features": {
+            "texture_var": 274.8368886576483,
+            "edge_density": 0.532258064516129,
+            "brightness": 205.33870967741936,
+            "contrast": 16.57820523029101,
+            "highlight_ratio": 0.6935483870967742,
+            "aspect_ratio": 2.375,
+            "depth_discontinuity": 0.0029000290669500828,
+            "mean_depth_m": 3.787681925673479
+          },
+          "scores": {
+            "textureless": 0.45032622268470346,
+            "boundary_mixing": 1.0,
+            "poor_lighting": 0.7236965794951498,
+            "thin_object": 0.0,
+            "occlusion": 0.0029000290669500828,
+            "reflection": 1.0
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "High"
+        },
+        {
+          "region_id": 293,
+          "bbox": [
+            400,
+            364,
+            13,
+            23
+          ],
+          "area": 213,
+          "mean_error": 0.045783594250679016,
+          "features": {
+            "texture_var": 132.03623619652186,
+            "edge_density": 0.0,
+            "brightness": 156.80281690140845,
+            "contrast": 11.49070216290205,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.7692307692307692,
+            "depth_discontinuity": 0.005519791040569544,
+            "mean_depth_m": 3.947004719842118
+          },
+          "scores": {
+            "textureless": 0.7359275276069563,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.005519791040569544,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 294,
+          "bbox": [
+            381,
+            365,
+            10,
+            14
+          ],
+          "area": 78,
+          "mean_error": 0.04541848599910736,
+          "features": {
+            "texture_var": 2.865220249835635,
+            "edge_density": 0.0,
+            "brightness": 227.48717948717947,
+            "contrast": 1.6926961481127187,
+            "highlight_ratio": 1.0,
+            "aspect_ratio": 1.4,
+            "depth_discontinuity": 0.005213315133005381,
+            "mean_depth_m": 3.8374474864090473
+          },
+          "scores": {
+            "textureless": 0.9942695595003287,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.9717883975314547,
+            "thin_object": 0.0,
+            "occlusion": 0.005213315133005381,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 299,
+          "bbox": [
+            206,
+            374,
+            12,
+            33
+          ],
+          "area": 137,
+          "mean_error": 0.07092493772506714,
+          "features": {
+            "texture_var": 1374.5433427460173,
+            "edge_density": 0.19708029197080293,
+            "brightness": 168.8175182481752,
+            "contrast": 37.074834358982876,
+            "highlight_ratio": 0.16058394160583941,
+            "aspect_ratio": 2.75,
+            "depth_discontinuity": 0.06671519577503204,
+            "mean_depth_m": 3.4476724311290154
+          },
+          "scores": {
+            "textureless": 0.0,
+            "boundary_mixing": 0.5912408759124088,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.06671519577503204,
+            "reflection": 0.8029197080291971
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 301,
+          "bbox": [
+            944,
+            377,
+            12,
+            27
+          ],
+          "area": 72,
+          "mean_error": 0.04611720144748688,
+          "features": {
+            "texture_var": 9.87943672839506,
+            "edge_density": 0.0,
+            "brightness": 117.40277777777777,
+            "contrast": 3.1431571275383385,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.25,
+            "depth_discontinuity": 0.009851095266640186,
+            "mean_depth_m": 3.1605104580154886
+          },
+          "scores": {
+            "textureless": 0.9802411265432098,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.009851095266640186,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 317,
+          "bbox": [
+            740,
+            437,
+            6,
+            25
+          ],
+          "area": 83,
+          "mean_error": 0.04811861366033554,
+          "features": {
+            "texture_var": 390.02728988242126,
+            "edge_density": 0.39759036144578314,
+            "brightness": 96.144578313253,
+            "contrast": 19.749108584501258,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 4.166666666666667,
+            "depth_discontinuity": 0.028848392888903618,
+            "mean_depth_m": 2.9349547852829136
+          },
+          "scores": {
+            "textureless": 0.2199454202351575,
+            "boundary_mixing": 1.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.2333333333333334,
+            "occlusion": 0.028848392888903618,
+            "reflection": 0.0
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "High"
+        },
+        {
+          "region_id": 320,
+          "bbox": [
+            629,
+            444,
+            165,
+            78
+          ],
+          "area": 502,
+          "mean_error": 0.052370741963386536,
+          "features": {
+            "texture_var": 200.65503722163146,
+            "edge_density": 0.055776892430278883,
+            "brightness": 119.88047808764941,
+            "contrast": 14.16527575522734,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.1153846153846154,
+            "depth_discontinuity": 0.044109851121902466,
+            "mean_depth_m": 2.951477601448073
+          },
+          "scores": {
+            "textureless": 0.5986899255567371,
+            "boundary_mixing": 0.16733067729083664,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.044109851121902466,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "Medium"
+        },
+        {
+          "region_id": 324,
+          "bbox": [
+            0,
+            454,
+            302,
+            314
+          ],
+          "area": 50053,
+          "mean_error": 0.07832229882478714,
+          "features": {
+            "texture_var": 236.26091434203155,
+            "edge_density": 0.018999860148242863,
+            "brightness": 148.1771322398258,
+            "contrast": 15.37078118841172,
+            "highlight_ratio": 0.0030767386570235552,
+            "aspect_ratio": 1.0397350993377483,
+            "depth_discontinuity": 0.01378836389631033,
+            "mean_depth_m": 2.6936461260988884
+          },
+          "scores": {
+            "textureless": 0.5274781713159369,
+            "boundary_mixing": 0.05699958044472859,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.01378836389631033,
+            "reflection": 0.015383693285117777
+          },
+          "top_cause": "textureless",
+          "confidence": "Medium"
+        },
+        {
+          "region_id": 361,
+          "bbox": [
+            770,
+            503,
+            12,
+            8
+          ],
+          "area": 41,
+          "mean_error": 0.04557615518569946,
+          "features": {
+            "texture_var": 148.03688280785246,
+            "edge_density": 0.14634146341463417,
+            "brightness": 64.63414634146342,
+            "contrast": 12.16704084023114,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.5,
+            "depth_discontinuity": 0.002809948055073619,
+            "mean_depth_m": 2.8508538968370605
+          },
+          "scores": {
+            "textureless": 0.7039262343842951,
+            "boundary_mixing": 0.4390243902439025,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.002809948055073619,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 365,
+          "bbox": [
+            577,
+            512,
+            177,
+            132
+          ],
+          "area": 6468,
+          "mean_error": 0.05966804549098015,
+          "features": {
+            "texture_var": 235.3895345679735,
+            "edge_density": 0.006029684601113173,
+            "brightness": 140.12213976499692,
+            "contrast": 15.342409672798256,
+            "highlight_ratio": 0.005411255411255411,
+            "aspect_ratio": 1.3409090909090908,
+            "depth_discontinuity": 0.014772419817745686,
+            "mean_depth_m": 2.7547507307761396
+          },
+          "scores": {
+            "textureless": 0.529220930864053,
+            "boundary_mixing": 0.018089053803339517,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.014772419817745686,
+            "reflection": 0.027056277056277056
+          },
+          "top_cause": "textureless",
+          "confidence": "Medium"
+        },
+        {
+          "region_id": 366,
+          "bbox": [
+            688,
+            512,
+            8,
+            5
+          ],
+          "area": 32,
+          "mean_error": 0.0496940016746521,
+          "features": {
+            "texture_var": 133.2880859375,
+            "edge_density": 0.0,
+            "brightness": 118.65625,
+            "contrast": 11.545045947829744,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.6,
+            "depth_discontinuity": 0.021050842478871346,
+            "mean_depth_m": 2.979025759536696
+          },
+          "scores": {
+            "textureless": 0.7334238281250001,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.021050842478871346,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 369,
+          "bbox": [
+            517,
+            519,
+            59,
+            48
+          ],
+          "area": 766,
+          "mean_error": 0.05169748514890671,
+          "features": {
+            "texture_var": 634.4959608423262,
+            "edge_density": 0.10443864229765014,
+            "brightness": 110.07310704960835,
+            "contrast": 25.18920325937933,
+            "highlight_ratio": 0.03263707571801567,
+            "aspect_ratio": 1.2291666666666667,
+            "depth_discontinuity": 0.0034592947922647,
+            "mean_depth_m": 3.7188816733523615
+          },
+          "scores": {
+            "textureless": 0.0,
+            "boundary_mixing": 0.3133159268929504,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.0034592947922647,
+            "reflection": 0.16318537859007834
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "Low"
+        },
+        {
+          "region_id": 374,
+          "bbox": [
+            419,
+            531,
+            67,
+            44
+          ],
+          "area": 457,
+          "mean_error": 0.04744434729218483,
+          "features": {
+            "texture_var": 638.555865721167,
+            "edge_density": 0.14442013129102846,
+            "brightness": 240.0656455142232,
+            "contrast": 25.269662952266835,
+            "highlight_ratio": 0.8840262582056893,
+            "aspect_ratio": 1.5227272727272727,
+            "depth_discontinuity": 0.009974461980164051,
+            "mean_depth_m": 3.7605800846953454
+          },
+          "scores": {
+            "textureless": 0.0,
+            "boundary_mixing": 0.43326039387308535,
+            "poor_lighting": 0.5788389507955527,
+            "thin_object": 0.0,
+            "occlusion": 0.009974461980164051,
+            "reflection": 1.0
+          },
+          "top_cause": "reflection",
+          "confidence": "High"
+        },
+        {
+          "region_id": 397,
+          "bbox": [
+            631,
+            556,
+            80,
+            36
+          ],
+          "area": 907,
+          "mean_error": 0.05660724639892578,
+          "features": {
+            "texture_var": 15.770247092016161,
+            "edge_density": 0.0,
+            "brightness": 140.38919514884233,
+            "contrast": 3.9711770411322838,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.2222222222222223,
+            "depth_discontinuity": 0.025349782779812813,
+            "mean_depth_m": 2.9708441078130585
+          },
+          "scores": {
+            "textureless": 0.9684595058159677,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.025349782779812813,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 400,
+          "bbox": [
+            165,
+            561,
+            6,
+            7
+          ],
+          "area": 27,
+          "mean_error": 0.04619603231549263,
+          "features": {
+            "texture_var": 2.0,
+            "edge_density": 0.0,
+            "brightness": 130.33333333333334,
+            "contrast": 1.4142135623730951,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.1666666666666667,
+            "depth_discontinuity": 0.00375667167827487,
+            "mean_depth_m": 3.3285895757356205
+          },
+          "scores": {
+            "textureless": 0.996,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.00375667167827487,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 404,
+          "bbox": [
+            867,
+            564,
+            8,
+            18
+          ],
+          "area": 50,
+          "mean_error": 0.046400416642427444,
+          "features": {
+            "texture_var": 7.161600000000001,
+            "edge_density": 0.0,
+            "brightness": 94.72,
+            "contrast": 2.676116589388437,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.25,
+            "depth_discontinuity": 0.007538584992289543,
+            "mean_depth_m": 3.2601674177176734
+          },
+          "scores": {
+            "textureless": 0.9856768,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.007538584992289543,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 413,
+          "bbox": [
+            880,
+            588,
+            15,
+            13
+          ],
+          "area": 38,
+          "mean_error": 0.04897274821996689,
+          "features": {
+            "texture_var": 14.354570637119116,
+            "edge_density": 0.0,
+            "brightness": 92.47368421052632,
+            "contrast": 3.788742619540039,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.1538461538461537,
+            "depth_discontinuity": 0.05821477621793747,
+            "mean_depth_m": 3.179474691070829
+          },
+          "scores": {
+            "textureless": 0.9712908587257618,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.05821477621793747,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 455,
+          "bbox": [
+            636,
+            638,
+            11,
+            8
+          ],
+          "area": 33,
+          "mean_error": 0.050560202449560165,
+          "features": {
+            "texture_var": 26.269972451790636,
+            "edge_density": 0.0,
+            "brightness": 136.8181818181818,
+            "contrast": 5.125424124088721,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.375,
+            "depth_discontinuity": 0.04458506032824516,
+            "mean_depth_m": 3.2227249131487308
+          },
+          "scores": {
+            "textureless": 0.9474600550964187,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.04458506032824516,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 457,
+          "bbox": [
+            90,
+            639,
+            11,
+            10
+          ],
+          "area": 82,
+          "mean_error": 0.05350412428379059,
+          "features": {
+            "texture_var": 437.6805472932778,
+            "edge_density": 0.1951219512195122,
+            "brightness": 128.0487804878049,
+            "contrast": 20.92081612397752,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.1,
+            "depth_discontinuity": 0.013424720615148544,
+            "mean_depth_m": 1.8285226369488703
+          },
+          "scores": {
+            "textureless": 0.12463890541344436,
+            "boundary_mixing": 0.5853658536585367,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.013424720615148544,
+            "reflection": 0.0
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "Medium"
+        },
+        {
+          "region_id": 467,
+          "bbox": [
+            810,
+            648,
+            15,
+            35
+          ],
+          "area": 68,
+          "mean_error": 0.04849826544523239,
+          "features": {
+            "texture_var": 192.32006920415222,
+            "edge_density": 0.36764705882352944,
+            "brightness": 52.05882352941177,
+            "contrast": 13.867951153798899,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.3333333333333335,
+            "depth_discontinuity": 0.06200137734413147,
+            "mean_depth_m": 3.1340839498403725
+          },
+          "scores": {
+            "textureless": 0.6153598615916955,
+            "boundary_mixing": 1.0,
+            "poor_lighting": 0.7688674807700183,
+            "thin_object": 0.0,
+            "occlusion": 0.06200137734413147,
+            "reflection": 0.0
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "High"
+        },
+        {
+          "region_id": 481,
+          "bbox": [
+            288,
+            690,
+            10,
+            13
+          ],
+          "area": 76,
+          "mean_error": 0.04525306820869446,
+          "features": {
+            "texture_var": 6.5872576177285325,
+            "edge_density": 0.0,
+            "brightness": 147.78947368421052,
+            "contrast": 2.5665653347866546,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.3,
+            "depth_discontinuity": 0.005983959883451462,
+            "mean_depth_m": 2.9056202577283097
+          },
+          "scores": {
+            "textureless": 0.9868254847645429,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.005983959883451462,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 488,
+          "bbox": [
+            793,
+            699,
+            10,
+            23
+          ],
+          "area": 43,
+          "mean_error": 0.04841568320989609,
+          "features": {
+            "texture_var": 170.0908599242834,
+            "edge_density": 0.27906976744186046,
+            "brightness": 48.95348837209303,
+            "contrast": 13.041888664004281,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 2.3,
+            "depth_discontinuity": 0.06402816623449326,
+            "mean_depth_m": 3.157961852708782
+          },
+          "scores": {
+            "textureless": 0.6598182801514332,
+            "boundary_mixing": 0.8372093023255813,
+            "poor_lighting": 0.782635188933262,
+            "thin_object": 0.0,
+            "occlusion": 0.06402816623449326,
+            "reflection": 0.0
+          },
+          "top_cause": "boundary_mixing",
+          "confidence": "High"
+        },
+        {
+          "region_id": 491,
+          "bbox": [
+            13,
+            715,
+            16,
+            30
+          ],
+          "area": 64,
+          "mean_error": 0.09428064525127411,
+          "features": {
+            "texture_var": 27.0458984375,
+            "edge_density": 0.0,
+            "brightness": 147.78125,
+            "contrast": 5.200567126525722,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.875,
+            "depth_discontinuity": 0.22730371356010437,
+            "mean_depth_m": 1.9057480477822357
+          },
+          "scores": {
+            "textureless": 0.945908203125,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.22730371356010437,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 497,
+          "bbox": [
+            4,
+            731,
+            7,
+            7
+          ],
+          "area": 35,
+          "mean_error": 0.04940924793481827,
+          "features": {
+            "texture_var": 0.0,
+            "edge_density": 0.0,
+            "brightness": 154.0,
+            "contrast": 0.0,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.0,
+            "depth_discontinuity": 0.0034265373833477497,
+            "mean_depth_m": 2.244826854958303
+          },
+          "scores": {
+            "textureless": 1.0,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.0034265373833477497,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 501,
+          "bbox": [
+            771,
+            743,
+            13,
+            25
+          ],
+          "area": 98,
+          "mean_error": 0.05236942321062088,
+          "features": {
+            "texture_var": 97.56476468138278,
+            "edge_density": 0.14285714285714288,
+            "brightness": 45.91836734693877,
+            "contrast": 9.877487771765793,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.9230769230769231,
+            "depth_discontinuity": 0.03612230718135834,
+            "mean_depth_m": 3.1674456111448737
+          },
+          "scores": {
+            "textureless": 0.8048704706372345,
+            "boundary_mixing": 0.4285714285714286,
+            "poor_lighting": 0.8353752038039035,
+            "thin_object": 0.0,
+            "occlusion": 0.03612230718135834,
+            "reflection": 0.0
+          },
+          "top_cause": "poor_lighting",
+          "confidence": "High"
+        },
+        {
+          "region_id": 502,
+          "bbox": [
+            0,
+            745,
+            13,
+            23
+          ],
+          "area": 121,
+          "mean_error": 0.11965126544237137,
+          "features": {
+            "texture_var": 1.564374018168158,
+            "edge_density": 0.0,
+            "brightness": 152.70247933884298,
+            "contrast": 1.2507493826375282,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.7692307692307692,
+            "depth_discontinuity": 0.05368611216545105,
+            "mean_depth_m": 2.1512547689713344
+          },
+          "scores": {
+            "textureless": 0.9968712519636637,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.05368611216545105,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        },
+        {
+          "region_id": 507,
+          "bbox": [
+            4,
+            755,
+            15,
+            12
+          ],
+          "area": 54,
+          "mean_error": 0.053514476865530014,
+          "features": {
+            "texture_var": 5.39506172839506,
+            "edge_density": 0.0,
+            "brightness": 155.55555555555554,
+            "contrast": 2.322727217818541,
+            "highlight_ratio": 0.0,
+            "aspect_ratio": 1.25,
+            "depth_discontinuity": 0.025730203837156296,
+            "mean_depth_m": 1.579985885844033
+          },
+          "scores": {
+            "textureless": 0.9892098765432099,
+            "boundary_mixing": 0.0,
+            "poor_lighting": 0.0,
+            "thin_object": 0.0,
+            "occlusion": 0.025730203837156296,
+            "reflection": 0.0
+          },
+          "top_cause": "textureless",
+          "confidence": "High"
+        }
+      ],
+      "config": {
+        "model_name": "metric_hypersim_vits",
+        "align_scale_shift": false,
+        "error_percentile": 85.0,
+        "min_region_area": 25,
+        "include_reflection": true,
+        "random_seed": 42
+      }
+    }
+  ]
+}

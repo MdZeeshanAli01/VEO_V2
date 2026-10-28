@@ -1,0 +1,9 @@
+signal,pearson_r,p_value,significant
+aspect_ratio,0.126445149,4.14E-20,TRUE
+brightness,0.164342302,5.07E-33,TRUE
+contrast,0.265598886,2.98E-85,TRUE
+depth_discontinuity,0.450192447,9.36E-260,TRUE
+edge_density,0.137800872,1.29E-23,TRUE
+highlight_ratio,0.139801224,2.88E-24,TRUE
+mean_depth_m,0.049235914,0.000365201,TRUE
+texture_var,0.216455624,1.47E-56,TRUE
