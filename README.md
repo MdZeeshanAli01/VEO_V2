@@ -29,7 +29,7 @@ Monocular Depth Estimation (MDE) foundation models have reached impressive globa
 > **Status: under revision (v2).** The v1 results below are reported in full, including the unfavourable ones. Several v1 claims were overstated and have been corrected here; the original state is preserved at the git tag `v1-archive`, and every correction is listed in [`docs/ERRATA_V1.md`](docs/ERRATA_V1.md). Known limitations of v1 are listed at the end of the findings.
 
 <div align="center">
-  <img src="figures/fig1_veo_architecture.png" alt="VEO Architecture" width="95%"/>
+  <img src="web_app/assets/fig1_veo_architecture.png" alt="VEO Architecture" width="95%"/>
   <p><em><b>Fig. 1:</b> Modular diagnostic architecture of the Vision Error Observatory (VEO) framework across Modules M1 to M5. [Note: Architecture diagram generated using AI visualization tools].</em></p>
 </div>
 
@@ -84,7 +84,6 @@ VEO_V2/
 ├── tests/                  # unit, behaviour, golden-output, pipeline and web-server tests
 ├── scripts/                # generate_figures.py; site/ builds the web app, its data and video
 ├── web_app/                # static explorer site + serve.py (deployed with the Dockerfile)
-├── figures/                # figures used by the README and the site
 ├── docs/                   # protocol, specification, errata
 ├── data/, outputs/         # local datasets and large run outputs (git-ignored)
 └── .github/workflows/      # CI: lint, tests, fixture reproduction

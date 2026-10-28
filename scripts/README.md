@@ -6,7 +6,7 @@ Analysis lives in `src/veo` and the per-result experiments live in [`experiments
 
 | Script | Output | Notes |
 |---|---|---|
-| `generate_figures.py` | `figures/fig1..fig3*.png` | Figure 2(a) plots measured per-scene scales from `outputs/alignment_ablation_full/test/alignment_ablation.json` when present, otherwise only the reported sign counts. |
+| `generate_figures.py` | `web_app/assets/fig1..fig3*.png` | Figure 2(a) plots measured per-scene scales from `outputs/alignment_ablation_full/test/alignment_ablation.json` when present, otherwise only the reported sign counts. |
 | `site/export_data.py` | `web_app/data/app_data_v2.js` | Needs local NYU data, predictions and the metric checkpoint. |
 | `site/build_index.py` | `web_app/index.html` | Static explorer page. |
 | `site/build_model_lab.py` | `web_app/model_lab.html` | 3D teaching lab page. |

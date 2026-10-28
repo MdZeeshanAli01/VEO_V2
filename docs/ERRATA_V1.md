@@ -36,4 +36,4 @@ Source files for every number below are in [`results/v1/`](../results/v1/).
 
 ## Files not corrected (read with this errata)
 
-All other Markdown documents in `docs/`, `scripts/` and `figures/` carry a banner pointing here.
+All other Markdown documents in `docs/` and `scripts/` carry a banner pointing here.
