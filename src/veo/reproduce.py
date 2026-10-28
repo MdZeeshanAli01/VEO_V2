@@ -47,11 +47,11 @@ def split_records(mat_path: Path, seed: int) -> tuple[str, dict[str, list[dict]]
     return f"scene_seed_{seed}", create_scene_splits(mat_path, seed)
 
 
-def prepare_test_split(mat_path: Path, split_root: Path, seed: int) -> tuple[Path, str]:
-    """Extract the test split with its manifest and scene metadata; returns its folder and split name."""
+def prepare_split(mat_path: Path, split_root: Path, seed: int, which: str = "test") -> tuple[Path, str]:
+    """Extract one split (``test`` or ``train``) with its manifest and scene metadata; returns its folder and split name."""
     split_name, splits = split_records(mat_path, seed)
-    records = splits["test"]
-    split_dir = split_root / "test"
+    records = splits[which] if which in splits else splits["development"]  # seeded splits call train "development"
+    split_dir = split_root / which
     extract_split(mat_path, records, split_dir)
     (split_dir / "metadata.json").write_text(json.dumps(records, indent=2), encoding="utf-8")
     lines = [f"{split_dir / 'rgb' / record['sample_id']}.png {split_dir / 'depth' / record['sample_id']}.npy" for record in records]
@@ -59,7 +59,7 @@ def prepare_test_split(mat_path: Path, split_root: Path, seed: int) -> tuple[Pat
     return split_dir, split_name
 
 
-def _split_config(base: Config, split_dir: Path, output_dir: Path, split_name: str, eval_crop: str | None) -> Config:
+def _split_config(base: Config, split_dir: Path, output_dir: Path, split_name: str, eval_crop: str | None, which: str = "test") -> Config:
     raw_dir = split_dir / "raw_depth"
     dataset = DatasetConfig(
         name=base.dataset.name,
@@ -68,12 +68,30 @@ def _split_config(base: Config, split_dir: Path, output_dir: Path, split_name: s
         manifest=split_dir / "manifest.txt",
         depth_scale=base.dataset.depth_scale,
         max_depth_m=base.dataset.max_depth_m,
-        split=f"{split_name}_test",
+        split=f"{split_name}_{which}",
         # Errors on sensor depth when the config asks for it and the dataset provides it
         raw_depth_dir=raw_dir if base.dataset.raw_depth_dir is not None and raw_dir.exists() else None,
         eval_crop=eval_crop,
     )
     return replace(base, dataset=dataset, outputs=OutputConfig(directory=output_dir))
+
+
+def _predict(config: Config, model_id: str, fixture: bool, seed: int, device: str, save_panels: bool = True) -> Path:
+    """Predict and analyze every pair of the configured split; returns the results file."""
+    if fixture:
+        predictor = SyntheticDisparityPredictor(seed)
+        run_pairs(
+            config,
+            discover_manifest(config.dataset.manifest),
+            lambda pair, rgb, shape: predictor.predict(rgb, load_depth(pair.depth_path, config.dataset.depth_scale)),
+            "model_results.json",
+            {"model_id": model_id},
+            save_predictions=True,
+            save_panels=save_panels,
+        )
+    else:
+        run_model(config, model_id, device, save_panels=save_panels)
+    return config.outputs.directory / "model_results.json"
 
 
 def _run_experiment(script: str, *args: str | Path) -> None:
@@ -182,8 +200,8 @@ def reproduce(
         model_ids = (FIXTURE_MODEL,)
     elif mat_path is None or not mat_path.exists():
         raise FileNotFoundError(f"NYU labelled .mat not found at {mat_path}. Download it with: veo download-nyu")
-    print(f"[1/4] Extracting the test split from {mat_path}")
-    split_dir, split_name = prepare_test_split(mat_path, outputs / "splits", seed)
+    print(f"[1/5] Extracting the test split from {mat_path}")
+    split_dir, split_name = prepare_split(mat_path, outputs / "splits", seed)
 
     base = load_config(config_path)
     eval_crop = None if fixture else base.dataset.eval_crop  # the eigen crop is defined for 480x640 frames only
@@ -191,20 +209,8 @@ def reproduce(
     for model_id in model_ids:
         slug = _slug(model_id)
         config = _split_config(base, split_dir, outputs / slug, split_name, eval_crop)
-        print(f"[2/4] Predicting and analyzing with {model_id}")
-        if fixture:
-            predictor = SyntheticDisparityPredictor(seed)
-            pairs = discover_manifest(config.dataset.manifest)
-            run_pairs(
-                config,
-                pairs,
-                lambda pair, rgb, shape, predictor=predictor, scale=config.dataset.depth_scale: predictor.predict(rgb, load_depth(pair.depth_path, scale)),
-                "model_results.json",
-                {"model_id": model_id},
-                save_predictions=True,
-            )
-        else:
-            run_model(config, model_id, device)
+        print(f"[2/5] Predicting and analyzing with {model_id}")
+        _predict(config, model_id, fixture, seed, device)
         alignment = run_alignment_ablation(config, model_id, device)  # reuses the cached predictions
         model_results = results / slug
         model_results.mkdir()
@@ -219,8 +225,9 @@ def reproduce(
             agreement = geometry_source_agreement(config, discover_manifest(config.dataset.manifest))
             write_result(model_results / "geometry_agreement.json", agreement, config)
             primary_results = config.outputs.directory / "model_results.json"
+            primary_model, primary_slug = model_id, slug
 
-    print("[3/4] Running experiments on the primary model")
+    print("[3/5] Running experiments on the primary model")
     primary_predictions = primary_results.parent / "predictions"
     _run_experiment("signal_ablation.py", "--results-path", primary_results, "--output", results / "signal_ablation.json")
     _run_experiment(
@@ -235,7 +242,17 @@ def reproduce(
         args = ["--rater1", rater1, "--results-path", primary_results, "--output", results / "human_agreement.json"]
         _run_experiment("human_agreement.py", *args, *(["--rater2", rater2] if rater2 else []))
 
-    print("[4/4] Writing summary")
+    if (split_dir / "labels").exists():
+        print(f"[4/5] Objective-label calibration: fit on the train split with {primary_model}, score on test")
+        train_dir, _ = prepare_split(mat_path, outputs / "splits", seed, "train")
+        train_config = _split_config(base, train_dir, outputs / primary_slug / "train", split_name, eval_crop, "train")
+        train_results = _predict(train_config, primary_model, fixture, seed, device, save_panels=False)
+        _run_experiment(
+            "silver_calibration.py", "--train-results", train_results, "--test-results", primary_results,
+            "--output", results / primary_slug / "silver_calibration.json",
+        )
+
+    print("[5/5] Writing summary")
     summary = write_summary_markdown(results)
     print(f"Done: {summary}")
     return summary

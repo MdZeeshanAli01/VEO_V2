@@ -24,6 +24,18 @@ def failure_mask(aligned: np.ndarray, target: np.ndarray, valid_mask: np.ndarray
     raise ValueError(f"Unknown region_mode: {config.region_mode}")
 
 
+def compute_regions(target: np.ndarray, prediction: np.ndarray, valid_mask: np.ndarray, config: ExperimentConfig) -> dict:
+    """Alignment, error maps and failure regions (with masks) for one sample."""
+    valid_mask = valid_mask & np.isfinite(target) & (target > 0.0) & np.isfinite(prediction)
+    if not valid_mask.any():
+        raise ValueError("Cannot analyze a sample with no finite, positive target/prediction pixels")
+    aligned, scale, shift = align_prediction(prediction, target, valid_mask, config)
+    error_map = compute_error_map(aligned, target, valid_mask)
+    failing = failure_mask(aligned, target, valid_mask, error_map, config) & valid_mask
+    regions = extract_failure_regions(error_map, valid_mask, config.error_percentile, config.min_region_area, failing, config.opening_radius)
+    return {"valid_mask": valid_mask, "aligned": aligned, "scale": scale, "shift": shift, "error_map": error_map, "failing": failing, "regions": regions}
+
+
 def analyze_sample(
     rgb: np.ndarray,
     target: np.ndarray,
@@ -40,16 +52,10 @@ def analyze_sample(
     """
     if rgb.shape[:2] != target.shape or target.shape != prediction.shape:
         raise ValueError("RGB, target, and prediction dimensions do not match")
-    valid_mask = valid_mask & np.isfinite(target) & (target > 0.0) & np.isfinite(prediction)
-    if not valid_mask.any():
-        raise ValueError("Cannot analyze a sample with no finite, positive target/prediction pixels")
-    aligned_prediction, scale, shift = align_prediction(prediction, target, valid_mask, config)
+    computed = compute_regions(target, prediction, valid_mask, config)
+    valid_mask, failing, regions = computed["valid_mask"], computed["failing"], computed["regions"]
+    aligned_prediction, scale, shift = computed["aligned"], computed["scale"], computed["shift"]
     metrics = compute_metrics(aligned_prediction, target, valid_mask)
-    error_map = compute_error_map(aligned_prediction, target, valid_mask)
-    failing = failure_mask(aligned_prediction, target, valid_mask, error_map, config)
-    regions = extract_failure_regions(
-        error_map, valid_mask, config.error_percentile, config.min_region_area, failing & valid_mask, config.opening_radius
-    )
     if config.geometry_source == "prediction":
         geometry = aligned_prediction
     elif config.geometry_source == "ground_truth":
@@ -79,7 +85,7 @@ def analyze_sample(
         },
         "failure_rule": {"mode": config.region_mode, "delta_threshold": config.delta_threshold, "error_percentile": config.error_percentile},
         "valid_pixels": int(valid_mask.sum()),
-        "failure_pixel_fraction": float((failing & valid_mask).sum() / valid_mask.sum()),
+        "failure_pixel_fraction": float(failing.sum() / valid_mask.sum()),
         "num_regions": len(result_regions),
         "regions": result_regions,
         "config": settings,

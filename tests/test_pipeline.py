@@ -59,6 +59,9 @@ def test_reproduce_fixture_runs_every_stage(tmp_path):
     agreement = json.loads((results / "synthetic-disparity" / "geometry_agreement.json").read_text(encoding="utf-8"))
     assert agreement["regions"] == sum(rules["delta_1.25 (primary)"]["cause_counts"].values())
     assert "## Failure-rule sensitivity" in text and "## Ground-truth-free labels" in text
+    silver = json.loads((results / "synthetic-disparity" / "silver_calibration.json").read_text(encoding="utf-8"))
+    assert silver["train"]["regions"] > 0 and silver["test"]["regions"] == agreement["regions"]
+    assert "## Objective (silver) labels" in text
 
 
 def test_reproduce_requires_the_dataset_when_not_a_fixture(tmp_path):

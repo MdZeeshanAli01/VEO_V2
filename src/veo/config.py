@@ -90,6 +90,15 @@ def _build(cls, values: dict, section: str):
     return cls(**converted)
 
 
+def config_from_dict(values: dict) -> Config:
+    """Rebuild a Config from its dict form, e.g. the ``config`` block stored in a results file."""
+    return Config(
+        dataset=_build(DatasetConfig, values.get("dataset", {}), "dataset"),
+        experiment=_build(ExperimentConfig, values.get("experiment", {}), "experiment"),
+        outputs=_build(OutputConfig, values.get("outputs", {}), "outputs"),
+    )
+
+
 def load_config(path: Path) -> Config:
     values = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return Config(

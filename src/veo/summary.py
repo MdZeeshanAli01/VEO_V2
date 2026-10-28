@@ -64,6 +64,43 @@ def _model(name: str, summary: dict) -> list[str]:
     return lines + [""]
 
 
+def _auroc_cell(entry: dict | None) -> str:
+    if not entry or entry.get("auroc") is None:
+        return "-"
+    return f"{entry['auroc']:.3f} [{entry['lower']:.3f}, {entry['upper']:.3f}]"
+
+
+def _f1_cell(entry: dict | None) -> str:
+    if not entry:
+        return "-"
+    return f"{entry['precision']:.2f} / {entry['recall']:.2f} / {entry['f1']:.2f}"
+
+
+def _silver(result: dict) -> list[str]:
+    test = result["test"]
+    evaluation = test["evaluation"]
+    lines = [
+        "## Objective (silver) labels from NYU annotations",
+        "",
+        f"- Fitted on {result['train']['regions']:,} train regions; scored on {evaluation['regions']:,} test regions "
+        f"from {evaluation['scenes']} scenes (95% intervals resample scenes)",
+        "",
+        "| Category | Test positives | AUROC hand-set | AUROC calibrated | AUROC learned | P / R / F1 hand-set | P / R / F1 calibrated | P / R / F1 learned |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for category, entry in evaluation["categories"].items():
+        lines.append(
+            f"| `{category}` | {entry['positives']:,} ({_pct(entry['prevalence'])}) | {_auroc_cell(entry['hand_set'])} | "
+            f"{_auroc_cell(entry.get('calibrated'))} | {_auroc_cell(entry.get('learned'))} | {_f1_cell(entry['hand_set'])} | "
+            f"{_f1_cell(entry.get('calibrated'))} | {_f1_cell(entry.get('learned'))} |"
+        )
+    lines += ["", "| VEO top label | Predicted | Confirmed by silver label |", "|---|---|---|"]
+    for category, row in test["top_label_precision"].items():
+        share = _pct(row["precision"]) if row["precision"] is not None else "-"
+        lines.append(f"| `{category}` | {row['predicted']:,} | {row['confirmed']:,} ({share}) |")
+    return lines + [""]
+
+
 def _geometry_agreement(result: dict) -> list[str]:
     lines = [
         "## Ground-truth-free labels (geometry from the aligned prediction)",
@@ -149,6 +186,9 @@ def write_summary_markdown(results_dir: Path) -> Path:
         rules = _load(model_dir / "failure_rules.json")
         if rules:
             lines += _failure_rules(rules)
+        silver = _load(model_dir / "silver_calibration.json")
+        if silver:
+            lines += _silver(silver)
         agreement = _load(model_dir / "geometry_agreement.json")
         if agreement and agreement.get("regions"):
             lines += _geometry_agreement(agreement)
