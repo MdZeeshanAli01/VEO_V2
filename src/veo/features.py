@@ -100,8 +100,11 @@ def region_features(maps: FeatureMaps, mask: np.ndarray) -> dict[str, float]:
         raise ValueError("Region mask is empty")
     ys, xs = np.where(mask)
     width, height = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
-    ring = cv2.dilate(mask.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
-    ring &= ~(cv2.erode(mask.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+    # The boundary ring reaches 2 px past the region, so a 3 px margin around its box is exact
+    crop = (slice(max(ys.min() - 3, 0), ys.max() + 4), slice(max(xs.min() - 3, 0), xs.max() + 4))
+    local = mask[crop].astype(np.uint8)
+    ring = (cv2.dilate(local, np.ones((5, 5), np.uint8)) > 0) & ~(cv2.erode(local, np.ones((5, 5), np.uint8)) > 0)
+    ring_gradients = maps.log_depth_grad[crop][ring]
     depth = maps.depth[mask]
     depth = depth[np.isfinite(depth) & (depth > 0)]
     gray = maps.gray[mask]
@@ -109,7 +112,7 @@ def region_features(maps: FeatureMaps, mask: np.ndarray) -> dict[str, float]:
         "grad_energy": float(maps.grad[mask].mean()),
         "corner_strength": float(maps.corner[mask].mean()),
         "depth_edge_fraction": float(maps.near_depth_edge[mask].mean()),
-        "depth_step": float(np.percentile(maps.log_depth_grad[ring], 90)) if ring.any() else 0.0,
+        "depth_step": float(np.percentile(ring_gradients, 90)) if ring_gradients.size else 0.0,
         "thin_fraction": float(maps.near_thin[mask].mean()),
         "thin_image_fraction": float(maps.near_thin_image[mask].mean()),
         "highlight_ratio": float(maps.highlight[mask].mean()),
