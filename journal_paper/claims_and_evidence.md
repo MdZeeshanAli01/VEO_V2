@@ -22,14 +22,14 @@ To guarantee adherence to the highest standards of academic peer review, this ma
 
 ## 2. Claim-by-Claim Evidence Mapping
 
-### Claim 1: Inverse-Depth Scale-and-Shift Alignment Strictly Guarantees Positive Polarity ($s > 0$)
+### Claim 1: Inverse-Depth Alignment Yields Positive Scale ($s > 0$) on All 244 Test Scenes (observed, not guaranteed)
 - **Location in Paper:** Section 3.2 (Eq. 2), Section 6.1, Figure 2(a).
-- **Manuscript Statement:** Direct-depth least-squares fitting produces inverted scale slopes ($s < 0$) in $100\%$ ($244/244$) of NYU test scenes when evaluating relative disparity models, whereas VEO's inverse-depth alignment guarantees positive scale parameters ($s > 0$) across $100\%$ of scenes.
+- **Manuscript Statement:** Direct-depth least-squares fitting produces inverted scale slopes ($s < 0$) in $100\%$ ($244/244$) of NYU test scenes when evaluating relative disparity models, whereas inverse-depth alignment yields positive scale parameters ($s > 0$) in all 244 scenes.
 - **Empirical Artifacts:**
   - `outputs/alignment_ablation_full/test/alignment_ablation.json`
   - `scripts/verify_aligned_arrays.py`
   - `figures/fig2_polarity_and_fingerprints.pdf`
-- **Audit Verification:** Confirmed. Direct fitting yields $s \in [-0.72, -0.25]$ on all 244 scenes. Inverse-depth fitting yields $s \in [1.22, 2.85]$ (mean $1.85 \pm 0.35$), strictly $s > 0$.
+- **Audit Verification (revised in phase 0):** The sign counts (244/244) are reported from `alignment_ablation.json`, which is not in the repository. The previously listed ranges ($s \in [-0.72, -0.25]$, $s \in [1.22, 2.85]$) have no traceable source and are **unverified**. The previously listed mean $1.85 \pm 0.35$ and the per-scene scatter in Figure 2(a) came from synthetic placeholder data (`np.random.normal(1.85, 0.35, 244)`) in the figure scripts and are **withdrawn**. The figure scripts now plot measured scales when the file is present.
 
 ---
 

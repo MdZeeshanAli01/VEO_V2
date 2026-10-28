@@ -23,6 +23,17 @@ plt.rcParams['figure.dpi'] = 300
 FIG_DIR = Path("journal_paper/figures")
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR = Path("journal_paper/results")
+ALIGNMENT_ABLATION = Path("outputs/alignment_ablation_full/test/alignment_ablation.json")
+
+
+def load_alignment_scales(path: Path = ALIGNMENT_ABLATION):
+    """Per-scene fitted scales from `veo-nyu compare-alignment`, or None if the file is absent."""
+    if not path.exists():
+        return None
+    records = json.loads(path.read_text(encoding="utf-8"))["records"]
+    direct = np.array([r["protocols"]["direct_depth_scale_shift"]["alignment"]["scale"] for r in records])
+    inverse = np.array([r["protocols"]["inverse_depth_scale_shift"]["alignment"]["scale"] for r in records])
+    return direct, inverse
 
 # ==============================================================================
 # FIGURE 1: Modular Pipeline & Diagnostic Workflow (Single Column / 1.5 Column)
@@ -71,7 +82,7 @@ def generate_fig1_architecture():
     ax.text(1.85, 5.8, "• Ground Truth: $D_{\\mathrm{gt}} \\in \\mathbb{R}^{H \\times W}$", fontsize=7.5, color='#0F172A', ha='center')
     ax.text(1.85, 5.45, "Inverse-Depth Affine Fit:", fontsize=7.5, fontweight='bold', color=c_blue, ha='center')
     ax.text(1.85, 5.15, "$\\min_{s,b} \\sum (sP + b - 1/D_{\\mathrm{gt}})^2$", fontsize=7.5, color='#1E40AF', ha='center')
-    ax.text(1.85, 4.8, "Strict Polarity: $s > 0$ (244/244)", fontsize=7.5, fontweight='bold', color='#15803D', ha='center')
+    ax.text(1.85, 4.8, "Observed: $s > 0$ (244/244)", fontsize=7.5, fontweight='bold', color='#15803D', ha='center')
     ax.text(1.85, 4.55, "Masking: Reject zeros & NaN", fontsize=7.0, color='#64748B', ha='center')
 
     # Arrow 1 -> 2
@@ -109,9 +120,9 @@ def generate_fig1_architecture():
     # Arrow Down from Stage 3 to Stage 4
     ax.annotate("", xy=(8.15, 3.8), xytext=(8.15, 4.4), arrowprops=dict(arrowstyle="->", color='#334155', lw=1.5))
 
-    # Box 4: M5 Scoring & Calibrated Gating (Bottom Wide Left)
-    draw_box(0.5, 0.8, 5.9, 2.9, c_card, c_red, "STAGE 4: CONTINUOUS SCORING & CALIBRATED AMBIGUITY GATE")
-    ax.text(2.1, 3.1, "Continuous Linear Ramps [0, 1]:", fontsize=7.5, fontweight='bold', color=c_red, ha='center')
+    # Box 4: M5 Scoring & fixed-threshold gating (Bottom Wide Left)
+    draw_box(0.5, 0.8, 5.9, 2.9, c_card, c_red, "STAGE 4: RULE-BASED SCORING & AMBIGUITY GATE")
+    ax.text(2.1, 3.1, "Hand-Set Linear Ramps [0, 1]:", fontsize=7.5, fontweight='bold', color=c_red, ha='center')
     rules_txt = [
         "• score_textureless = clip01(1 - texture_var / 500.0)",
         "• score_boundary = clip01(edge_density * 3.0)",
@@ -132,23 +143,23 @@ def generate_fig1_architecture():
     ax.text(4.9, 2.05, "$\\mathrm{margin} = s_{(1)} - s_{(2)} < 0.10$", fontsize=7.2, fontweight='bold', color='#B91C1C', ha='center', zorder=4)
     ax.text(4.9, 1.75, "True -> 'ambiguous' (Low Conf)", fontsize=7.0, fontweight='bold', color='#991B1B', ha='center', zorder=4)
     ax.text(4.9, 1.45, "False -> Top Cause (High/Med Conf)", fontsize=7.0, fontweight='bold', color='#15803D', ha='center', zorder=4)
-    ax.text(4.9, 1.15, "Prevents False Certainty", fontsize=6.8, style='italic', color='#64748B', ha='center', zorder=4)
+    ax.text(4.9, 1.15, "Thresholds hand-set, uncalibrated", fontsize=6.8, style='italic', color='#64748B', ha='center', zorder=4)
 
     # Arrow from Stage 4 to Stage 5
     ax.annotate("", xy=(6.8, 2.25), xytext=(6.4, 2.25), arrowprops=dict(arrowstyle="->", color='#334155', lw=1.5))
 
     # Box 5: M6 Downstream Utility
-    draw_box(6.8, 0.8, 2.7, 2.9, c_card, c_green, "STAGE 5: DOWNSTREAM AUDIT")
-    ax.text(8.15, 3.1, "Verified Actionable Utility", fontsize=7.5, fontweight='bold', color=c_green, ha='center')
+    draw_box(6.8, 0.8, 2.7, 2.9, c_card, c_green, "STAGE 5: V1 EVALUATIONS")
+    ax.text(8.15, 3.1, "Reported with limitations", fontsize=7.5, fontweight='bold', color=c_green, ha='center')
     downstream_txt = [
-        "1. Architectural Fingerprints:",
-        "   ViT: textureless & boundary",
-        "   Conv: reflection & lighting",
-        "2. Counterfactual Testing:",
-        "   Noise injection flips label",
-        "3. Selective Boundary Filter:",
-        "   +0.354% Regional AbsRel",
-        "   +0.162% Regional RMSE",
+        "1. Cross-model label shares",
+        "   (exploratory, no sig. test)",
+        "2. Scoring sanity check:",
+        "   noise lowers textureless",
+        "   score (model not re-run)",
+        "3. Oracle boundary filter",
+        "   (GT-selected masks):",
+        "   -0.35% regional AbsRel",
         "   across 207 test scenes",
     ]
     for idx, dt in enumerate(downstream_txt):
@@ -166,29 +177,31 @@ def generate_fig1_architecture():
 def generate_fig2_polarity_and_fingerprints():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.2), dpi=300)
 
-    # Panel A: Polarity Reversal Analysis across 244 test scenes
-    np.random.seed(42)
-    scenes = np.arange(1, 245)
-    direct_scales = -np.random.normal(0.48, 0.12, 244)
-    inverse_scales = np.random.normal(1.85, 0.35, 244)
-
-    ax1.axhline(0, color='black', linestyle='--', linewidth=1.0, alpha=0.7)
-    ax1.scatter(scenes, direct_scales, color='#DC2626', alpha=0.55, s=14, label='Direct Depth Fit ($s < 0$, 244/244 inverted)')
-    ax1.scatter(scenes, inverse_scales, color='#2563EB', alpha=0.55, s=14, label='Inverse Depth Fit ($s > 0$, 244/244 positive - VEO)')
-
-    ax1.set_title("(a) Metric Scale Slope ($s$) on 244 NYU Test Scenes", fontsize=9.5, fontweight='bold', pad=8)
-    ax1.set_xlabel("Held-Out Test Scene Index", fontsize=8.5)
-    ax1.set_ylabel("Fitted Scale Parameter ($s$)", fontsize=8.5)
-    ax1.set_ylim(-1.0, 3.2)
+    # Panel A: fitted scale per test scene. Plot measured values only; never synthesize them.
+    scales = load_alignment_scales()
+    if scales is not None:
+        direct_scales, inverse_scales = scales
+        scenes = np.arange(1, len(direct_scales) + 1)
+        n_neg = int((direct_scales < 0).sum())
+        n_pos = int((inverse_scales > 0).sum())
+        ax1.axhline(0, color='black', linestyle='--', linewidth=1.0, alpha=0.7)
+        ax1.scatter(scenes, direct_scales, color='#DC2626', alpha=0.55, s=14,
+                    label=f'Direct depth fit ($s < 0$: {n_neg}/{len(scenes)})')
+        ax1.scatter(scenes, inverse_scales, color='#2563EB', alpha=0.55, s=14,
+                    label=f'Inverse-depth fit ($s > 0$: {n_pos}/{len(scenes)})')
+        ax1.set_title(f"(a) Fitted Scale $s$ on {len(scenes)} NYU Test Scenes", fontsize=9.5, fontweight='bold', pad=8)
+        ax1.set_xlabel("Test Scene Index", fontsize=8.5)
+        ax1.set_ylabel("Fitted Scale Parameter ($s$)", fontsize=8.5)
+        ax1.legend(loc='best', fontsize=7.5, framealpha=0.9)
+    else:
+        # Per-scene values unavailable: show only the reported sign counts, labelled as such
+        ax1.bar([0, 1], [244, 244], color=['#DC2626', '#2563EB'], width=0.5)
+        ax1.set_xticks([0, 1])
+        ax1.set_xticklabels(['Direct depth fit\n$s < 0$', 'Inverse-depth fit\n$s > 0$'], fontsize=8.0)
+        ax1.set_ylabel("Test scenes (of 244)", fontsize=8.5)
+        ax1.set_ylim(0, 290)
+        ax1.set_title("(a) Sign of Fitted Scale (reported counts)", fontsize=9.5, fontweight='bold', pad=8)
     ax1.grid(True, linestyle=':', alpha=0.5)
-    ax1.legend(loc='upper right', fontsize=7.5, framealpha=0.9)
-
-    ax1.annotate("Polarity Inversion\n(Geometry Inverted)", xy=(120, -0.6), xytext=(120, -0.9),
-                 ha='center', fontsize=7.5, fontweight='bold', color='#991B1B',
-                 bbox=dict(boxstyle="round,pad=0.2", fc="#FEF2F2", ec="#FECACA"))
-    ax1.annotate("Correct Metric\nRecovery ($s > 0$)", xy=(120, 2.5), xytext=(120, 2.7),
-                 ha='center', fontsize=7.5, fontweight='bold', color='#1E40AF',
-                 bbox=dict(boxstyle="round,pad=0.2", fc="#EFF6FF", ec="#BFDBFE"))
 
     # Panel B: Cross-Model Failure Fingerprints
     categories = ['Ambiguous', 'Textureless', 'Boundary', 'Reflection', 'Lighting', 'Thin Obj', 'Occlusion']
@@ -201,7 +214,7 @@ def generate_fig2_polarity_and_fingerprints():
     rects1 = ax2.bar(x - w/2, da_v2, w, label='Depth Anything V2 (ViT)', color='#1E3A8A', edgecolor='#0F172A', alpha=0.9)
     rects2 = ax2.bar(x + w/2, dpt, w, label='DPT Hybrid (Conv-ViT)', color='#0D9488', edgecolor='#042F2E', alpha=0.9)
 
-    ax2.set_title("(b) Architectural Failure Fingerprints", fontsize=9.5, fontweight='bold', pad=8)
+    ax2.set_title("(b) Share of Regions per VEO Label (Exploratory)", fontsize=9.5, fontweight='bold', pad=8)
     ax2.set_xlabel("VEO Failure Attribution Category", fontsize=8.5)
     ax2.set_ylabel("Share of Extracted Regions (%)", fontsize=8.5)
     ax2.set_xticks(x)
@@ -209,14 +222,6 @@ def generate_fig2_polarity_and_fingerprints():
     ax2.set_ylim(0, 48)
     ax2.grid(True, linestyle=':', alpha=0.5, axis='y')
     ax2.legend(loc='upper right', fontsize=7.5, framealpha=0.9)
-
-    # Annotate key architectural differences
-    ax2.annotate("ViT patch\ntoken bleed", xy=(2 - w/2, 18.0), xytext=(2 - w/2, 25.0),
-                 ha='center', fontsize=6.8, fontweight='bold', color='#1E3A8A',
-                 arrowprops=dict(arrowstyle="->", color='#1E3A8A', lw=1.0))
-    ax2.annotate("Specular glare\nsensitivity", xy=(3 + w/2, 17.4), xytext=(3 + w/2, 24.0),
-                 ha='center', fontsize=6.8, fontweight='bold', color='#0D9488',
-                 arrowprops=dict(arrowstyle="->", color='#0D9488', lw=1.0))
 
     fig.tight_layout()
     for ext in ['.png', '.pdf']:
@@ -232,7 +237,7 @@ def generate_fig3_intervention_and_downstream():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.2), dpi=300)
 
     # Panel A: Controlled Texture Noise Injection (Scene 0049 Region 8)
-    stages = ['Original Wall\n(Pre-Intervention)', 'Texture Noise\nInjected (Post)']
+    stages = ['Original Wall\n(Before)', 'Noise Added\n(After)']
     scores_text = [0.6464, 0.0000]
     scores_amb = [0.0000, 1.0000]  # Flip to ambiguous
 
@@ -241,7 +246,7 @@ def generate_fig3_intervention_and_downstream():
     ax1.bar(xs - bar_w/2, scores_text, bar_w, label='Textureless Score', color='#2563EB', edgecolor='#1D4ED8')
     ax1.bar(xs + bar_w/2, scores_amb, bar_w, label='Ambiguity Gated Flag', color='#DC2626', edgecolor='#B91C1C')
 
-    ax1.set_title("(a) Counterfactual Faithfulness Test (Scene 0049, R8)", fontsize=9.5, fontweight='bold', pad=8)
+    ax1.set_title("(a) Scoring Sanity Check (Scene 0049, R8)", fontsize=9.5, fontweight='bold', pad=8)
     ax1.set_ylabel("Calculated Heuristic Score", fontsize=8.5)
     ax1.set_xticks(xs)
     ax1.set_xticklabels(stages, fontsize=8.0)
@@ -249,7 +254,7 @@ def generate_fig3_intervention_and_downstream():
     ax1.grid(True, linestyle=':', alpha=0.5, axis='y')
     ax1.legend(loc='upper right', fontsize=7.5)
 
-    ax1.annotate("Var: 176.8 -> 689.4\nScore drops to 0.0\nAttribution flips!", 
+    ax1.annotate("Var: 176.8 -> 689.4\nScore = 1 - var/500 -> 0.0\n(formula check only)",
                  xy=(1, 0.02), xytext=(0.5, 0.55),
                  ha='center', fontsize=7.5, fontweight='bold', color='#1E293B',
                  arrowprops=dict(arrowstyle="->", color='#334155', lw=1.2),
@@ -259,13 +264,13 @@ def generate_fig3_intervention_and_downstream():
     metrics = ['Regional AbsRel\n(Lower Better)', 'Regional RMSE\n(Lower Better)']
     before = [0.2348, 0.6629]
     after = [0.2340, 0.6618]
-    pct_imp = ["+0.354%", "+0.162%"]
+    pct_imp = ["-0.35%", "-0.16%"]
 
     xb = np.arange(len(metrics))
-    b1 = ax2.bar(xb - bar_w/2, before, bar_w, label='Before (Raw Prediction)', color='#64748B', edgecolor='#334155')
-    b2 = ax2.bar(xb + bar_w/2, after, bar_w, label='After Targeted Bilateral Filter', color='#059669', edgecolor='#047857')
+    b1 = ax2.bar(xb - bar_w/2, before, bar_w, label='Before (Aligned Prediction)', color='#64748B', edgecolor='#334155')
+    b2 = ax2.bar(xb + bar_w/2, after, bar_w, label='After Filter in GT-Selected Masks', color='#059669', edgecolor='#047857')
 
-    ax2.set_title("(b) Actionable Downstream Remediation (207 Scenes)", fontsize=9.5, fontweight='bold', pad=8)
+    ax2.set_title("(b) Oracle Boundary Filtering (207 Scenes, GT masks)", fontsize=9.5, fontweight='bold', pad=8)
     ax2.set_ylabel("Error Metric Value", fontsize=8.5)
     ax2.set_xticks(xb)
     ax2.set_xticklabels(metrics, fontsize=8.0)

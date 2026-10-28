@@ -1,3 +1,4 @@
+import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -10,6 +11,17 @@ plt.rcParams['figure.dpi'] = 300
 
 out_dir = Path("figures")
 out_dir.mkdir(exist_ok=True)
+ALIGNMENT_ABLATION = Path("outputs/alignment_ablation_full/test/alignment_ablation.json")
+
+
+def load_alignment_scales(path=ALIGNMENT_ABLATION):
+    """Per-scene fitted scales from `veo-nyu compare-alignment`, or None if the file is absent."""
+    if not path.exists():
+        return None
+    records = json.loads(path.read_text(encoding="utf-8"))["records"]
+    direct = np.array([r["protocols"]["direct_depth_scale_shift"]["alignment"]["scale"] for r in records])
+    inverse = np.array([r["protocols"]["inverse_depth_scale_shift"]["alignment"]["scale"] for r in records])
+    return direct, inverse
 
 # ==============================================================================
 # FIGURE 1: VEO Modular Architecture Diagram
@@ -83,8 +95,8 @@ def generate_fig1_architecture():
     # Polar reversal notice
     rect_polar = patches.Rectangle((3.4, 6.2), 2.3, 0.9, facecolor='#EFF6FF', edgecolor='#BFDBFE', zorder=3)
     ax.add_patch(rect_polar)
-    ax.text(4.55, 6.75, "Strict Polarity Enforcement", fontsize=8.5, fontweight='bold', color='#1D4ED8', ha='center', zorder=4)
-    ax.text(4.55, 6.4, r"$s > 0$ guaranteed (244/244)", fontsize=8, color='#1E40AF', ha='center', zorder=4)
+    ax.text(4.55, 6.75, "Fit in Disparity Space", fontsize=8.5, fontweight='bold', color='#1D4ED8', ha='center', zorder=4)
+    ax.text(4.55, 6.4, r"$s > 0$ observed (244/244)", fontsize=8, color='#1E40AF', ha='center', zorder=4)
 
     ax.text(4.55, 5.65, "Metric Reconstruction", fontsize=9.5, fontweight='bold', color=c_m1, ha='center')
     ax.text(4.55, 5.25, r"$\hat{D}_{ij} = \frac{1}{\max(s P_{ij} + b, 10^{-6})}$", fontsize=9, color='#0F172A', ha='center')
@@ -156,10 +168,10 @@ def generate_fig1_architecture():
                 arrowprops=dict(arrowstyle="->", color='#334155', lw=2))
 
     # 6. MODULE M5: Rule-Based Cause Attribution & Ambiguity Gate (Bottom Row - Wide Card)
-    draw_box(2.0, 0.4, 8.5, 2.8, c_card, c_m5, "M5: RULE-BASED ATTRIBUTION & CALIBRATED AMBIGUITY GATE")
-    
+    draw_box(2.0, 0.4, 8.5, 2.8, c_card, c_m5, "M5: RULE-BASED ATTRIBUTION & AMBIGUITY GATE")
+
     # Left column of M5: Normalized Scoring Functions
-    ax.text(4.0, 2.7, "Domain-Calibrated Heuristic Scoring Engine", fontsize=9, fontweight='bold', color=c_m5, ha='center')
+    ax.text(4.0, 2.7, "Hand-Set Rule-Based Scores", fontsize=9, fontweight='bold', color=c_m5, ha='center')
     rules = [
         r"$\bullet\ \mathrm{score}_{\mathrm{textureless}} = \mathrm{clip}(1.0 - \mathrm{texture\_var} / 500.0, 0, 1)$",
         r"$\bullet\ \mathrm{score}_{\mathrm{boundary}} = \mathrm{clip}(\mathrm{edge\_density} \times 3.0, 0, 1)$",
@@ -171,10 +183,10 @@ def generate_fig1_architecture():
     for idx, r_str in enumerate(rules):
         ax.text(2.2, 2.35 - idx * 0.32, r_str, fontsize=7.5, color='#1E293B', ha='left')
 
-    # Right column of M5: Calibrated Ambiguity Gate
+    # Right column of M5: Fixed-threshold ambiguity gate
     rect_gate = patches.Rectangle((6.8, 0.55), 3.5, 2.0, facecolor='#FEF2F2', edgecolor='#FECACA', zorder=3)
     ax.add_patch(rect_gate)
-    ax.text(8.55, 2.35, "Calibrated Ambiguity Gate", fontsize=9, fontweight='bold', color='#991B1B', ha='center', zorder=4)
+    ax.text(8.55, 2.35, "Fixed-Threshold Ambiguity Gate", fontsize=9, fontweight='bold', color='#991B1B', ha='center', zorder=4)
     ax.text(8.55, 2.05, r"Leading Scores: $s_{(1)} \geq s_{(2)}$", fontsize=8, color='#7F1D1D', ha='center', zorder=4)
     ax.text(8.55, 1.75, r"Condition: $s_{(1)} < 0.40\ \mathrm{or}\ (s_{(1)} - s_{(2)} < 0.10)$", fontsize=7.8, fontweight='bold', color='#B91C1C', ha='center', zorder=4)
     ax.text(8.55, 1.4, "True -> Ambiguous (Prevents False Certainty)", fontsize=7.5, color='#991B1B', ha='center', zorder=4)
@@ -182,15 +194,15 @@ def generate_fig1_architecture():
     ax.text(8.55, 0.75, "7 Classes: textureless, boundary, thin, etc.", fontsize=7.2, color='#475569', ha='center', zorder=4)
 
     # 7. DOWNSTREAM APPLICATIONS (Bottom Right)
-    draw_box(11.0, 0.4, 4.5, 2.8, c_card, c_downstream, "DOWNSTREAM AUDIT & ACTIONABLE UTILITY")
-    ax.text(13.25, 2.7, "Validated Operational Applications", fontsize=9, fontweight='bold', color=c_downstream, ha='center')
-    
+    draw_box(11.0, 0.4, 4.5, 2.8, c_card, c_downstream, "V1 EVALUATIONS")
+    ax.text(13.25, 2.7, "Reported with limitations", fontsize=9, fontweight='bold', color=c_downstream, ha='center')
+
     down_items = [
         "1. Diagnostic Scene Cards & Spatial Heatmaps",
-        "2. Cross-Model Failure Fingerprinting (DA-V2 vs DPT)",
-        "3. Multi-Rater Human Agreement (kappa = 0.472, 58.6% Acc)",
-        "4. Controlled Intervention Faithfulness Verification",
-        "5. Selective Boundary Bilateral Refinement (+0.35% AbsRel)",
+        "2. Cross-Model Label Shares (exploratory)",
+        "3. Human Agreement, N=50 (kappa = 0.26 / 0.14)",
+        "4. Scoring-Function Sanity Check",
+        "5. Oracle Boundary Filtering (-0.35% AbsRel, GT masks)",
     ]
     for idx, d_str in enumerate(down_items):
         ax.text(11.2, 2.3 - idx * 0.35, d_str, fontsize=8, color='#065F46', ha='left')
@@ -214,31 +226,31 @@ def generate_fig1_architecture():
 def generate_fig2_polarity_and_fingerprints():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
 
-    # Subplot A: Polarity Reversal
-    # Synthetic scatter representing scale distributions across 244 test scenes
-    np.random.seed(42)
-    scenes = np.arange(1, 245)
-    direct_scales = -np.random.normal(0.48, 0.12, 244) # Strictly negative
-    inverse_scales = np.random.normal(1.85, 0.35, 244)  # Strictly positive
-
-    ax1.axhline(0, color='black', linestyle='--', linewidth=1.2, alpha=0.7)
-    ax1.scatter(scenes, direct_scales, color='#DC2626', alpha=0.6, s=18, label='Direct Depth Fit (s < 0, 244/244 negative)')
-    ax1.scatter(scenes, inverse_scales, color='#2563EB', alpha=0.6, s=18, label='Inverse-Depth Fit (s > 0, 244/244 positive - VEO)')
-
-    ax1.set_title("(a) Scale Slope Sign ($s$) Across 244 NYU Test Scenes", fontsize=11, fontweight='bold', pad=10)
-    ax1.set_xlabel("Held-Out Test Scene Index", fontsize=10)
-    ax1.set_ylabel("Fitted Scale Parameter ($s$)", fontsize=10)
-    ax1.set_ylim(-1.0, 3.2)
+    # Subplot A: fitted scale per test scene. Plot measured values only; never synthesize them.
+    scales = load_alignment_scales()
+    if scales is not None:
+        direct_scales, inverse_scales = scales
+        scenes = np.arange(1, len(direct_scales) + 1)
+        n_neg = int((direct_scales < 0).sum())
+        n_pos = int((inverse_scales > 0).sum())
+        ax1.axhline(0, color='black', linestyle='--', linewidth=1.2, alpha=0.7)
+        ax1.scatter(scenes, direct_scales, color='#DC2626', alpha=0.6, s=18,
+                    label=f'Direct depth fit (s < 0: {n_neg}/{len(scenes)})')
+        ax1.scatter(scenes, inverse_scales, color='#2563EB', alpha=0.6, s=18,
+                    label=f'Inverse-depth fit (s > 0: {n_pos}/{len(scenes)})')
+        ax1.set_title(f"(a) Fitted Scale $s$ Across {len(scenes)} NYU Test Scenes", fontsize=11, fontweight='bold', pad=10)
+        ax1.set_xlabel("Test Scene Index", fontsize=10)
+        ax1.set_ylabel("Fitted Scale Parameter ($s$)", fontsize=10)
+        ax1.legend(loc='best', fontsize=8.5, framealpha=0.9)
+    else:
+        # Per-scene values unavailable: show only the reported sign counts, labelled as such
+        ax1.bar([0, 1], [244, 244], color=['#DC2626', '#2563EB'], width=0.5)
+        ax1.set_xticks([0, 1])
+        ax1.set_xticklabels(['Direct depth fit\ns < 0', 'Inverse-depth fit\ns > 0'], fontsize=9.5)
+        ax1.set_ylabel("Test scenes (of 244)", fontsize=10)
+        ax1.set_ylim(0, 290)
+        ax1.set_title("(a) Sign of Fitted Scale (reported counts)", fontsize=11, fontweight='bold', pad=10)
     ax1.grid(True, linestyle=':', alpha=0.6)
-    ax1.legend(loc='upper right', fontsize=8.5, framealpha=0.9)
-
-    ax1.annotate("Polarity Reversal\n(Geometry Inverted)", xy=(120, -0.6), xytext=(120, -0.9),
-                ha='center', fontsize=8.5, fontweight='bold', color='#991B1B',
-                bbox=dict(boxstyle="round,pad=0.3", fc="#FEF2F2", ec="#FECACA"))
-
-    ax1.annotate("Correct Metric\nRecovery ($s > 0$)", xy=(120, 2.5), xytext=(120, 2.7),
-                ha='center', fontsize=8.5, fontweight='bold', color='#1E40AF',
-                bbox=dict(boxstyle="round,pad=0.3", fc="#EFF6FF", ec="#BFDBFE"))
 
     # Subplot B: Cross-Model Failure Fingerprinting
     categories = ['Ambiguous', 'Textureless', 'Boundary', 'Reflection', 'Poor Lighting', 'Thin Object', 'Occlusion']
@@ -251,8 +263,8 @@ def generate_fig2_polarity_and_fingerprints():
     rects1 = ax2.bar(x - width/2, da_v2_pct, width, label='Depth Anything V2 Small (5,236 regions)', color='#3B82F6', edgecolor='#1D4ED8')
     rects2 = ax2.bar(x + width/2, dpt_midas_pct, width, label='DPT-Hybrid-MiDaS (3,689 regions)', color='#F59E0B', edgecolor='#D97706')
 
-    ax2.set_title("(b) Comparative Failure Category Prevalence (%)", fontsize=11, fontweight='bold', pad=10)
-    ax2.set_ylabel("Prevalence (%) Across Segmented Regions", fontsize=10)
+    ax2.set_title("(b) Share of Regions per VEO Label (%), Exploratory", fontsize=11, fontweight='bold', pad=10)
+    ax2.set_ylabel("Share of Each Model's Regions (%)", fontsize=10)
     ax2.set_xticks(x)
     ax2.set_xticklabels(categories, rotation=25, ha='right', fontsize=9)
     ax2.set_ylim(0, 48)
@@ -286,7 +298,7 @@ def generate_fig2_polarity_and_fingerprints():
 def generate_fig3_intervention_and_downstream():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.0), dpi=300)
 
-    # Subplot A: Explanation Faithfulness Intervention (Scene 0049 Region 8)
+    # Subplot A: Scoring-function sanity check (Scene 0049 Region 8); the depth model is not re-run
     stages = ['Original Wall Patch\n(High-Error)', 'Synthetic Texture\nInjected (+Noise)']
     variance_vals = [176.82, 689.39]
     score_vals = [0.6464, 0.0000]
@@ -301,7 +313,7 @@ def generate_fig3_intervention_and_downstream():
     b1 = ax1.bar(x_pos - w/2, variance_vals, width=w, color=color_var, label='Texture Variance (Var(I))', edgecolor='#0369A1')
     b2 = ax1_twin.bar(x_pos + w/2, score_vals, width=w, color=color_score, label='Textureless Heuristic Score', edgecolor='#991B1B')
 
-    ax1.set_title("(a) Controlled Texture Intervention (scene_0049, Region 8)", fontsize=11, fontweight='bold', pad=10)
+    ax1.set_title("(a) Scoring Sanity Check: Added Noise (scene_0049, Region 8)", fontsize=11, fontweight='bold', pad=10)
     ax1.set_xticks(x_pos)
     ax1.set_xticklabels(stages, fontsize=9.5)
     ax1.set_ylabel("Grayscale Texture Variance", color=color_var, fontsize=10)
@@ -310,7 +322,7 @@ def generate_fig3_intervention_and_downstream():
     ax1_twin.set_ylim(0, 1.0)
     ax1.grid(True, linestyle=':', alpha=0.5)
 
-    ax1.annotate("Diagnosis: textureless\n(Conf: Medium)", xy=(0, 200), xytext=(0, 360),
+    ax1.annotate("Diagnosis: textureless\n(Conf: High)", xy=(0, 200), xytext=(0, 360),
                 ha='center', fontsize=8.5, fontweight='bold', color='#1E293B',
                 bbox=dict(boxstyle="round,pad=0.3", fc="#F1F5F9", ec="#CBD5E1"))
 
@@ -327,9 +339,9 @@ def generate_fig3_intervention_and_downstream():
     w2 = 0.35
 
     r1 = ax2.bar(x2 - w2/2, baseline_scores, width=w2, label='Baseline Depth Anything V2', color='#64748B', edgecolor='#334155')
-    r2 = ax2.bar(x2 + w2/2, refined_scores, width=w2, label='VEO-Guided Bilateral Refinement', color='#10B981', edgecolor='#059669')
+    r2 = ax2.bar(x2 + w2/2, refined_scores, width=w2, label='Bilateral Filtering in GT-Selected Masks', color='#10B981', edgecolor='#059669')
 
-    ax2.set_title("(b) Downstream Metric Comparison on 207 Test Scenes", fontsize=11, fontweight='bold', pad=10)
+    ax2.set_title("(b) Oracle Boundary Filtering on 207 Test Scenes (GT masks)", fontsize=11, fontweight='bold', pad=10)
     ax2.set_xticks(x2)
     ax2.set_xticklabels(metrics, fontsize=9)
     ax2.set_ylabel("Error Metric Magnitude", fontsize=10)
