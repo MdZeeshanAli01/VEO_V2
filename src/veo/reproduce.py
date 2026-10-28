@@ -238,6 +238,11 @@ def reproduce(
         "oracle_boundary_filter.py", "--results-path", primary_results, "--prediction-dir", primary_predictions,
         "--depth-dir", split_dir / "depth", "--output", results / "oracle_boundary_filter.json",
     )
+    print("      model-in-the-loop interventions (texture, exposure, resolution)")
+    _run_experiment(
+        "causal_interventions.py", "--results-path", primary_results, "--model-id", primary_model, "--device", device,
+        "--output", results / primary_slug / "interventions.json",
+    )
     if rater1:
         args = ["--rater1", rater1, "--results-path", primary_results, "--output", results / "human_agreement.json"]
         _run_experiment("human_agreement.py", *args, *(["--rater2", rater2] if rater2 else []))

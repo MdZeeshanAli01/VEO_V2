@@ -62,6 +62,9 @@ def test_reproduce_fixture_runs_every_stage(tmp_path):
     silver = json.loads((results / "synthetic-disparity" / "silver_calibration.json").read_text(encoding="utf-8"))
     assert silver["train"]["regions"] > 0 and silver["test"]["regions"] == agreement["regions"]
     assert "## Objective (silver) labels" in text
+    interventions = json.loads((results / "synthetic-disparity" / "interventions.json").read_text(encoding="utf-8"))
+    assert set(interventions["tests"]) == {"texture", "exposure", "resolution_boundary", "resolution_thin"}
+    assert "## Model-in-the-loop interventions" in text
 
 
 def test_reproduce_requires_the_dataset_when_not_a_fixture(tmp_path):

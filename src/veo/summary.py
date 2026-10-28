@@ -64,6 +64,29 @@ def _model(name: str, summary: dict) -> list[str]:
     return lines + [""]
 
 
+def _interventions(result: dict) -> list[str]:
+    lines = [
+        "## Model-in-the-loop interventions",
+        "",
+        "Each labelled region is paired with a matched control region; both get the same edit and the model is re-run. "
+        "Difference = (change in labelled-region AbsRel) - (change in control AbsRel); negative supports VEO's label.",
+        "",
+        "| Test | Edit | Pairs | Labelled Δ | Control Δ | Difference [95% CI] | p (Holm) | Supports label |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for name, test in result["tests"].items():
+        stats = test["difference"]
+        if stats.get("n", 0) < 2:
+            lines.append(f"| {name} | {test['edit']} | {test['pairs']} | - | - | too few pairs | - | - |")
+            continue
+        lines.append(
+            f"| {name} | {test['edit']} | {test['pairs']} | {test['mean_target_change']:+.4f} | {test['mean_control_change']:+.4f} | "
+            f"{stats['mean']:+.4f} [{stats['lower']:+.4f}, {stats['upper']:+.4f}] | {stats.get('p_holm', stats['p_value']):.4f} | "
+            f"{'yes' if test.get('supports_hypothesis') else 'no'} |"
+        )
+    return lines + [""]
+
+
 def _interval(entry: dict | None, percent: bool = True) -> str:
     if not entry:
         return "-"
@@ -223,6 +246,9 @@ def write_summary_markdown(results_dir: Path) -> Path:
         rules = _load(model_dir / "failure_rules.json")
         if rules:
             lines += _failure_rules(rules)
+        interventions = _load(model_dir / "interventions.json")
+        if interventions:
+            lines += _interventions(interventions)
         study = _load(model_dir / "human_study.json")
         if study:
             lines += _human_study(study)
