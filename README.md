@@ -118,6 +118,8 @@ uv run veo reproduce --models depth-anything/Depth-Anything-V2-Small-hf Intel/dp
 
 This extracts the scene-disjoint test split, runs each model, compares alignment protocols, runs the signal ablation, scoring sanity check and oracle filter on the first model, and writes `results/nyu_test/SUMMARY.md`. Every result JSON records the git commit, configuration hash and package versions. Add `--rater1 <csv> --rater2 <csv>` to include a human-agreement study on a rating set exported with `veo prepare-rating`.
 
+**Interrupted runs resume.** Every finished piece of work is checkpointed as it completes: split extraction, each image's prediction and analysis, alignment comparisons, intervention edits, objective labels and Hypersim frames. If the connection drops, `veo reproduce` waits and resumes by itself (`--retries`, default 3). After a crash or shutdown, run the same command again and it continues where it stopped. Checkpoints are keyed by settings: change a setting and the affected work is redone. After changing VEO's code, add `--fresh` to recompute (extracted splits and model predictions are kept).
+
 The v1 human-agreement figures above can be recomputed from the stored confusion matrix:
 
 ```bash
