@@ -30,6 +30,8 @@ FAILURE_RULES = {
     "delta_1.10": {"region_mode": "delta", "delta_threshold": 1.10},
     "delta_1.5625": {"region_mode": "delta", "delta_threshold": 1.5625},
     "percentile_85": {"region_mode": "percentile", "error_percentile": 85.0},
+    # Speckle cleanup: does a 1 px opening erase thin failure bands (edges, thin objects)?
+    "delta_1.25_opening_1": {"region_mode": "delta", "delta_threshold": 1.25, "opening_radius": 1},
 }
 
 

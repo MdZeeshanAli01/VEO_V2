@@ -54,4 +54,7 @@ Frozen on 2026-10-28, before any v2 result on the NYU official test split was co
 
 ## Amendments
 
-None yet.
+**2026-10-28, before any NYU v2 result was computed:**
+
+1. *Speckle-cleanup sensitivity.* Added a fifth failure rule, δ 1.25 with a 1 px morphological opening, to the sensitivity table. It measures how many thin failure regions an opening would erase. The primary rule is unchanged (no opening).
+2. *Thin structures without ground truth.* Added `thin_image_fraction`, the share of region pixels on or next to a thin bright or dark image line (top-hat / black-hat of grey level, 9 px window, > 25 grey levels). When `geometry_source` is `prediction`, the thin-object evidence is the larger of the depth cue and this image cue, because a model that misses a thin object usually removes it from its own depth map too. Audit mode (ground-truth geometry) is unchanged.

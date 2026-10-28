@@ -10,6 +10,9 @@ Geometry cues use log depth, so they do not depend on the scene's absolute scale
   depth_step           90th percentile of |grad log depth| on the ring around the region
   thin_fraction        share of region pixels on, or next to, a thin structure nearer than its
                        surroundings (white top-hat of disparity relative to disparity)
+  thin_image_fraction  share of region pixels on, or next to, a thin bright or dark line in the image
+                       (top-hat / black-hat of grey level); used when geometry comes from the
+                       prediction, which often smooths thin objects away
   highlight_ratio      share of pixels that are bright, unsaturated and brighter than their surroundings
   clipped_fraction     share of pixels at the ends of the grey range (under- or over-exposed)
   brightness, contrast mean and standard deviation of grey level
@@ -32,6 +35,7 @@ class FeatureParams:
     highlight_value: int = 200
     highlight_saturation: int = 50
     highlight_local_delta: int = 25
+    thin_image_delta: int = 25
 
     @classmethod
     def from_config(cls, config) -> "FeatureParams":
@@ -47,6 +51,7 @@ class FeatureMaps:
     log_depth_grad: np.ndarray
     near_depth_edge: np.ndarray
     near_thin: np.ndarray
+    near_thin_image: np.ndarray
     highlight: np.ndarray
     clipped: np.ndarray
 
@@ -77,13 +82,17 @@ def compute_feature_maps(rgb: np.ndarray, depth: np.ndarray, params: FeaturePara
     tophat = cv2.morphologyEx(disparity, cv2.MORPH_TOPHAT, kernel)
     thin = (tophat / np.maximum(disparity, 1e-6) > params.thin_relative_threshold) & measured
     near_thin = cv2.dilate(thin.astype(np.uint8), _disk(2)) > 0
+    line_strength = np.maximum(
+        cv2.morphologyEx(smoothed, cv2.MORPH_TOPHAT, kernel), cv2.morphologyEx(smoothed, cv2.MORPH_BLACKHAT, kernel)
+    )
+    near_thin_image = cv2.dilate((line_strength > params.thin_image_delta).astype(np.uint8), _disk(2)) > 0
 
     hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
     value, saturation = hsv[:, :, 2], hsv[:, :, 1]
     local = value.astype(np.int16) - cv2.medianBlur(value, 21).astype(np.int16)
     highlight = (value >= params.highlight_value) & (saturation <= params.highlight_saturation) & (local >= params.highlight_local_delta)
     clipped = (gray >= 250) | (gray <= 5)
-    return FeatureMaps(gray, grad, corner, depth, log_grad, near_edge, near_thin, highlight, clipped)
+    return FeatureMaps(gray, grad, corner, depth, log_grad, near_edge, near_thin, near_thin_image, highlight, clipped)
 
 
 def region_features(maps: FeatureMaps, mask: np.ndarray) -> dict[str, float]:
@@ -102,6 +111,7 @@ def region_features(maps: FeatureMaps, mask: np.ndarray) -> dict[str, float]:
         "depth_edge_fraction": float(maps.near_depth_edge[mask].mean()),
         "depth_step": float(np.percentile(maps.log_depth_grad[ring], 90)) if ring.any() else 0.0,
         "thin_fraction": float(maps.near_thin[mask].mean()),
+        "thin_image_fraction": float(maps.near_thin_image[mask].mean()),
         "highlight_ratio": float(maps.highlight[mask].mean()),
         "clipped_fraction": float(maps.clipped[mask].mean()),
         "brightness": float(gray.mean()),

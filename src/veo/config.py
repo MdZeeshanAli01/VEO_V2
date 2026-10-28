@@ -42,6 +42,7 @@ class ExperimentConfig:
     thin_kernel: int = 9
     thin_relative_threshold: float = 0.1
     thin_fraction_scale: float = 0.3
+    thin_image_delta: int = 25
     highlight_value: int = 200
     highlight_saturation: int = 50
     highlight_local_delta: int = 25
