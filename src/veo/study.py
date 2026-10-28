@@ -117,18 +117,21 @@ def render_item(sample: dict, mask: np.ndarray, context_path: Path, detail_path:
     contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     context = bgr.copy()
     cv2.drawContours(context, contours, -1, (0, 255, 255), 2)
-    cv2.imwrite(str(context_path), context)
+    cv2.imwrite(str(context_path), context, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
     ys, xs = np.where(mask)
     height, width = mask.shape
     pad = max(12, int(0.5 * max(np.ptp(ys), np.ptp(xs))))
     crop = (slice(max(ys.min() - pad, 0), min(ys.max() + pad + 1, height)), slice(max(xs.min() - pad, 0), min(xs.max() + pad + 1, width)))
-    dense = sample["dense"][crop]
-    finite = dense[np.isfinite(dense) & (dense > 0)]
-    # Disparity colouring so near is bright; true depth and prediction share one colour range
-    low, high = (1.0 / np.percentile(finite, 98), 1.0 / np.percentile(finite, 2)) if finite.size else (0.1, 1.0)
-    true_panel = _colourise(1.0 / np.clip(dense, 1e-3, None), low, high, cv2.COLORMAP_MAGMA)
-    predicted_panel = _colourise(1.0 / np.clip(sample["aligned"][crop], 1e-3, None), low, high, cv2.COLORMAP_MAGMA)
+    true_disparity = 1.0 / np.clip(sample["dense"][crop], 1e-3, None)
+    predicted_disparity = 1.0 / np.clip(sample["aligned"][crop], 1e-3, None)
+    # Disparity colouring so near is bright. Both panels share one range taken from both depths,
+    # so a prediction far off the true depth shows as a colour difference rather than a blank panel.
+    both = np.concatenate([true_disparity.ravel(), predicted_disparity.ravel()])
+    both = both[np.isfinite(both) & (both < 1e3)]
+    low, high = (np.percentile(both, 2), np.percentile(both, 98)) if both.size else (0.1, 1.0)
+    true_panel = _colourise(true_disparity, low, high, cv2.COLORMAP_MAGMA)
+    predicted_panel = _colourise(predicted_disparity, low, high, cv2.COLORMAP_MAGMA)
     error_panel = _colourise(sample["error_map"][crop], 0.0, 0.5, cv2.COLORMAP_INFERNO)
     error_panel[~sample["valid_mask"][crop]] = (90, 90, 90)  # no sensor measurement
     local_contours, _ = cv2.findContours(mask[crop].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -141,7 +144,7 @@ def render_item(sample: dict, mask: np.ndarray, context_path: Path, detail_path:
     strip = resized[0]
     for panel in resized[1:]:
         strip = np.hstack([strip, gap, panel])
-    cv2.imwrite(str(detail_path), strip)
+    cv2.imwrite(str(detail_path), strip, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
 
 def practice_candidates(train_results: Path, count: int, seed: int) -> list[dict]:
@@ -190,7 +193,7 @@ def _render_set(results_path: Path, wanted: dict[tuple[str, int], dict], images_
         for (sample_id, region_id), item in wanted.items():
             if sample_id != record["sample_id"]:
                 continue
-            render_item(sample, masks[region_id], images_dir / f"{item['id']}_context.png", images_dir / f"{item['id']}_detail.png")
+            render_item(sample, masks[region_id], images_dir / f"{item['id']}_context.jpg", images_dir / f"{item['id']}_detail.jpg")
             if maps is not None:
                 silver = region_silver(maps, masks[region_id])
                 item["silver_labels"], item["silver_shares"] = silver["labels"], silver["shares"]
@@ -221,9 +224,9 @@ def build_study(test_results: Path, output_dir: Path, train_results: Path | None
         "study_id": study_id,
         "tool_version": TOOL_VERSION,
         "categories": CATEGORIES,
-        "items": [{"id": item["id"], "context": f"images/{item['id']}_context.png", "detail": f"images/{item['id']}_detail.png"} for item in items.values()],
+        "items": [{"id": item["id"], "context": f"images/{item['id']}_context.jpg", "detail": f"images/{item['id']}_detail.jpg"} for item in items.values()],
         "practice": [
-            {"id": item["id"], "context": f"images/{item['id']}_context.png", "detail": f"images/{item['id']}_detail.png", "reference": item["reference"]}
+            {"id": item["id"], "context": f"images/{item['id']}_context.jpg", "detail": f"images/{item['id']}_detail.jpg", "reference": item["reference"]}
             for item in practice.values()
         ],
     }

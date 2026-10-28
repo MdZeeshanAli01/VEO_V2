@@ -114,3 +114,4 @@ web_app/data/app_data_v2.js
 study/
 study_manifest.json
 ratings/
+study*.zip
