@@ -20,6 +20,7 @@ from .nyu_dataset import create_scene_splits, extract_split, official_splits
 from .reports import write_result
 from .runner import run_alignment_ablation, run_model, run_pairs
 from .summary import write_summary_markdown
+from .validation import cohens_kappa
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS = REPO_ROOT / "experiments"
@@ -76,6 +77,50 @@ def _split_config(base: Config, split_dir: Path, output_dir: Path, split_name: s
 def _run_experiment(script: str, *args: str | Path) -> None:
     env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(REPO_ROOT / "src"), os.environ.get("PYTHONPATH")]))}
     subprocess.run([sys.executable, str(EXPERIMENTS / script), *map(str, args)], check=True, env=env)
+
+
+def geometry_source_agreement(config: Config, pairs: list) -> dict:
+    """Labels from prediction-only geometry (no ground truth) versus the ground-truth audit labels.
+
+    Failure regions depend only on the error map, so both runs produce the same regions and can be
+    compared one to one.
+    """
+    predictor = PrecomputedPredictor(config.outputs.directory / "predictions")
+    deploy_config = replace(
+        config,
+        experiment=replace(config.experiment, geometry_source="prediction"),
+        outputs=OutputConfig(directory=config.outputs.directory / "geometry_prediction"),
+    )
+    run_pairs(
+        deploy_config, pairs, lambda pair, rgb, shape: predictor.predict_for_sample(pair.sample_id, shape),
+        "model_results.json", {"geometry_source": "prediction"}, save_panels=False,
+    )
+
+    def top_labels(directory: Path) -> dict[tuple[str, int], tuple[str, frozenset]]:
+        records = json.loads((directory / "model_results.json").read_text(encoding="utf-8"))["records"]
+        return {(r["sample_id"], g["region_id"]): (g["top_cause"], frozenset(g["labels"])) for r in records for g in r["regions"]}
+
+    audit, deploy = top_labels(config.outputs.directory), top_labels(deploy_config.outputs.directory)
+    keys = sorted(audit.keys() & deploy.keys())
+    if not keys:
+        return {"regions": 0}
+    audit_top, deploy_top = [audit[key][0] for key in keys], [deploy[key][0] for key in keys]
+    categories = sorted({label for key in keys for label in audit[key][1] | deploy[key][1]})
+    per_label = {}
+    for label in categories:
+        in_audit = [label in audit[key][1] for key in keys]
+        in_deploy = [label in deploy[key][1] for key in keys]
+        per_label[label] = {
+            "audit": sum(in_audit),
+            "prediction_only": sum(in_deploy),
+            "both": sum(a and d for a, d in zip(in_audit, in_deploy, strict=True)),
+        }
+    return {
+        "regions": len(keys),
+        "top_cause_agreement": sum(a == d for a, d in zip(audit_top, deploy_top, strict=True)) / len(keys),
+        "top_cause_kappa": cohens_kappa(audit_top, deploy_top),
+        "per_label": per_label,
+    }
 
 
 def failure_rule_sensitivity(config: Config, pairs: list, primary_summary: dict) -> dict:
@@ -168,6 +213,9 @@ def reproduce(
             primary_summary = json.loads((model_results / "summary.json").read_text(encoding="utf-8"))
             sensitivity = failure_rule_sensitivity(config, discover_manifest(config.dataset.manifest), primary_summary)
             write_result(model_results / "failure_rules.json", sensitivity, config)
+            print("      ground-truth-free geometry on cached predictions")
+            agreement = geometry_source_agreement(config, discover_manifest(config.dataset.manifest))
+            write_result(model_results / "geometry_agreement.json", agreement, config)
             primary_results = config.outputs.directory / "model_results.json"
 
     print("[3/4] Running experiments on the primary model")

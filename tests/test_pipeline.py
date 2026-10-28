@@ -53,6 +53,12 @@ def test_reproduce_fixture_runs_every_stage(tmp_path):
         assert heading in text
     oracle = json.loads((results / "oracle_boundary_filter.json").read_text(encoding="utf-8"))
     assert oracle["oracle"] is True and oracle["evaluated_scenes"] > 0
+    rules = json.loads((results / "synthetic-disparity" / "failure_rules.json").read_text(encoding="utf-8"))["rules"]
+    # Looser delta thresholds flag more pixels
+    assert rules["delta_1.10"]["mean_failure_pixel_fraction"] > rules["delta_1.25 (primary)"]["mean_failure_pixel_fraction"] > rules["delta_1.5625"]["mean_failure_pixel_fraction"]
+    agreement = json.loads((results / "synthetic-disparity" / "geometry_agreement.json").read_text(encoding="utf-8"))
+    assert agreement["regions"] == sum(rules["delta_1.25 (primary)"]["cause_counts"].values())
+    assert "## Failure-rule sensitivity" in text and "## Ground-truth-free labels" in text
 
 
 def test_reproduce_requires_the_dataset_when_not_a_fixture(tmp_path):

@@ -64,6 +64,21 @@ def _model(name: str, summary: dict) -> list[str]:
     return lines + [""]
 
 
+def _geometry_agreement(result: dict) -> list[str]:
+    lines = [
+        "## Ground-truth-free labels (geometry from the aligned prediction)",
+        "",
+        f"- Same top label as the ground-truth audit on {_pct(result['top_cause_agreement'])} of {result['regions']:,} regions "
+        f"(κ = {result['top_cause_kappa']:.3f})",
+        "",
+        "| Label | Regions (audit) | Regions (prediction only) | Both |",
+        "|---|---|---|---|",
+    ]
+    for label, row in result["per_label"].items():
+        lines.append(f"| `{label}` | {row['audit']:,} | {row['prediction_only']:,} | {row['both']:,} |")
+    return lines + [""]
+
+
 def _failure_rules(result: dict) -> list[str]:
     lines = ["## Failure-rule sensitivity", "", "| Rule | Regions | Failing px / image | Top labels (share of regions) |", "|---|---|---|---|"]
     for name, row in result["rules"].items():
@@ -134,6 +149,9 @@ def write_summary_markdown(results_dir: Path) -> Path:
         rules = _load(model_dir / "failure_rules.json")
         if rules:
             lines += _failure_rules(rules)
+        agreement = _load(model_dir / "geometry_agreement.json")
+        if agreement and agreement.get("regions"):
+            lines += _geometry_agreement(agreement)
     sections = [
         ("human_agreement.json", _human),
         ("signal_ablation.json", _ablation),
