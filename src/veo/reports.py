@@ -21,6 +21,32 @@ def write_manifest(pairs, path: Path, split: str) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _failure_extent(records: list[dict]) -> dict:
+    """How much of the evaluated image area fails, and how much of it each hypothesis covers.
+
+    Shares are of all valid pixels across the split, so models with different region counts compare fairly.
+    """
+    if not records or "valid_pixels" not in records[0]:
+        return {}
+    valid = sum(record["valid_pixels"] for record in records)
+    regions = [region for record in records for region in record["regions"]]
+    label_pixels = Counter()
+    top_pixels = Counter()
+    for region in regions:
+        top_pixels[region["top_cause"]] += region["area"]
+        for label in region.get("labels", []):
+            label_pixels[label] += region["area"]
+    return {
+        "valid_pixels": valid,
+        "mean_failure_pixel_fraction": float(np.mean([record["failure_pixel_fraction"] for record in records])),
+        "region_pixel_fraction": sum(region["area"] for region in regions) / valid,
+        "top_cause_pixel_fraction": {label: count / valid for label, count in top_pixels.items()},
+        "label_pixel_fraction": {label: count / valid for label, count in label_pixels.items()},
+        "label_counts": dict(Counter(label for region in regions for label in region.get("labels", []))),
+        "multi_label_regions": sum(len(region.get("labels", [])) > 1 for region in regions),
+    }
+
+
 def write_summary(records: list[dict], output_dir: Path) -> None:
     causes = Counter(region["top_cause"] for record in records for region in record["regions"])
     metric_names = ("mae", "rmse", "abs_rel", "sq_rel", "delta1", "delta2", "delta3", "spearman")
@@ -34,6 +60,7 @@ def write_summary(records: list[dict], output_dir: Path) -> None:
         "num_regions": sum(record["num_regions"] for record in records),
         "mean_metrics": metrics,
         "cause_counts": dict(causes),
+        **_failure_extent(records),
     }
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

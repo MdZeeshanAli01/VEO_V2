@@ -15,6 +15,7 @@ from pathlib import Path
 from .config import Config, DatasetConfig, OutputConfig, load_config
 from .data import discover_manifest, load_depth
 from .fixtures import SyntheticDisparityPredictor, write_fixture_mat, write_fixture_splits
+from .inference import PrecomputedPredictor
 from .nyu_dataset import create_scene_splits, extract_split, official_splits
 from .reports import write_result
 from .runner import run_alignment_ablation, run_model, run_pairs
@@ -23,6 +24,12 @@ from .summary import write_summary_markdown
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS = REPO_ROOT / "experiments"
 FIXTURE_MODEL = "synthetic-disparity"
+# Sensitivity of the failure definition (protocol v2); the primary rule is delta 1.25
+FAILURE_RULES = {
+    "delta_1.10": {"region_mode": "delta", "delta_threshold": 1.10},
+    "delta_1.5625": {"region_mode": "delta", "delta_threshold": 1.5625},
+    "percentile_85": {"region_mode": "percentile", "error_percentile": 85.0},
+}
 
 
 def _slug(model_id: str) -> str:
@@ -69,6 +76,26 @@ def _split_config(base: Config, split_dir: Path, output_dir: Path, split_name: s
 def _run_experiment(script: str, *args: str | Path) -> None:
     env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(REPO_ROOT / "src"), os.environ.get("PYTHONPATH")]))}
     subprocess.run([sys.executable, str(EXPERIMENTS / script), *map(str, args)], check=True, env=env)
+
+
+def failure_rule_sensitivity(config: Config, pairs: list, primary_summary: dict) -> dict:
+    """Re-run the analysis on cached predictions under each alternative failure rule."""
+    predictor = PrecomputedPredictor(config.outputs.directory / "predictions")
+    keys = ("num_regions", "mean_failure_pixel_fraction", "region_pixel_fraction", "cause_counts", "label_pixel_fraction")
+    rules = {f"delta_{config.experiment.delta_threshold:g} (primary)": {key: primary_summary.get(key) for key in keys}}
+    for name, overrides in FAILURE_RULES.items():
+        rule_config = replace(
+            config,
+            experiment=replace(config.experiment, **overrides),
+            outputs=OutputConfig(directory=config.outputs.directory / "failure_rules" / name),
+        )
+        run_pairs(
+            rule_config, pairs, lambda pair, rgb, shape: predictor.predict_for_sample(pair.sample_id, shape),
+            "model_results.json", {"failure_rule": overrides}, save_panels=False,
+        )
+        summary = json.loads((rule_config.outputs.directory / "summary.json").read_text(encoding="utf-8"))
+        rules[name] = {key: summary.get(key) for key in keys}
+    return {"rules": rules}
 
 
 def _slim_alignment(payload: dict) -> dict:
@@ -136,7 +163,12 @@ def reproduce(
         model_results.mkdir()
         shutil.copyfile(config.outputs.directory / "summary.json", model_results / "summary.json")
         write_result(model_results / "alignment_ablation.json", _slim_alignment(alignment), config)
-        primary_results = primary_results or (config.outputs.directory / "model_results.json")
+        if primary_results is None:
+            print("      failure-rule sensitivity on cached predictions")
+            primary_summary = json.loads((model_results / "summary.json").read_text(encoding="utf-8"))
+            sensitivity = failure_rule_sensitivity(config, discover_manifest(config.dataset.manifest), primary_summary)
+            write_result(model_results / "failure_rules.json", sensitivity, config)
+            primary_results = config.outputs.directory / "model_results.json"
 
     print("[3/4] Running experiments on the primary model")
     primary_predictions = primary_results.parent / "predictions"

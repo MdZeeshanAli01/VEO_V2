@@ -69,6 +69,7 @@ def run_pairs(
     metadata: dict,
     save_predictions: bool = False,
     max_depth_m: float | None = None,
+    save_panels: bool = True,
 ) -> list[dict]:
     """Analyze every pair and write results JSON, summary, region CSV, correlations and panels."""
     output_dir = config.outputs.directory
@@ -83,6 +84,8 @@ def run_pairs(
             np.save(prediction_dir / f"{pair.sample_id}.npy", prediction)
         result = analyze_sample(rgb, target, prediction, valid_mask, config.experiment, geometry_depth=dense)
         records.append({"sample_id": pair.sample_id, **result})
+        if not save_panels:
+            continue
         # Panels show the same aligned prediction the analysis used, not the raw model output
         aligned, _, _ = align_prediction(prediction, target, valid_mask & np.isfinite(prediction), config.experiment)
         save_panel(rgb, target, aligned, compute_error_map(aligned, target, valid_mask), output_dir / "panels" / f"{pair.sample_id}.png", pair.sample_id)

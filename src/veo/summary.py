@@ -43,9 +43,34 @@ def _model(name: str, summary: dict) -> list[str]:
     lines = [f"## Model: {name}", "", f"- Samples: {summary['num_samples']}, regions: {total:,}"]
     if metrics:
         lines.append(f"- AbsRel {metrics['abs_rel']:.4f}, RMSE {metrics['rmse']:.4f} m, δ1 {metrics['delta1']:.4f}")
-    lines += ["", "| Label | Regions | Share |", "|---|---|---|"]
-    for label, count in sorted(summary["cause_counts"].items(), key=lambda item: -item[1]):
-        lines.append(f"| `{label}` | {count:,} | {_pct(count / total) if total else '-'} |")
+    if "mean_failure_pixel_fraction" in summary:
+        lines.append(
+            f"- Failing pixels: {_pct(summary['mean_failure_pixel_fraction'])} per image on average; "
+            f"{_pct(summary['region_pixel_fraction'])} of valid pixels lie in regions; "
+            f"{summary['multi_label_regions']:,} regions have more than one label"
+        )
+    pixel_share = summary.get("top_cause_pixel_fraction", {})
+    label_share = summary.get("label_pixel_fraction", {})
+    label_counts = summary.get("label_counts", {})
+    lines += ["", "| Label | Regions (top label) | Share | Valid pixels (top label) | Regions with label | Valid pixels with label |", "|---|---|---|---|---|---|"]
+    labels = set(summary["cause_counts"]) | set(label_counts)
+    for label in sorted(labels, key=lambda name: (-summary["cause_counts"].get(name, 0), -label_counts.get(name, 0), name)):
+        count = summary["cause_counts"].get(label, 0)
+        share = _pct(count / total) if total else "-"
+        lines.append(
+            f"| `{label}` | {count:,} | {share} | {_pct(pixel_share[label]) if label in pixel_share else '-'} | "
+            f"{label_counts.get(label, '-')} | {_pct(label_share[label]) if label in label_share else '-'} |"
+        )
+    return lines + [""]
+
+
+def _failure_rules(result: dict) -> list[str]:
+    lines = ["## Failure-rule sensitivity", "", "| Rule | Regions | Failing px / image | Top labels (share of regions) |", "|---|---|---|---|"]
+    for name, row in result["rules"].items():
+        total = row["num_regions"] or 0
+        top = ", ".join(f"{label} {_pct(count / total)}" for label, count in sorted(row["cause_counts"].items(), key=lambda item: -item[1])[:3]) if total else "-"
+        failing = _pct(row["mean_failure_pixel_fraction"]) if row.get("mean_failure_pixel_fraction") is not None else "-"
+        lines.append(f"| {name} | {total:,} | {failing} | {top} |")
     return lines + [""]
 
 
@@ -106,6 +131,9 @@ def write_summary_markdown(results_dir: Path) -> Path:
         alignment = _load(model_dir / "alignment_ablation.json")
         if alignment:
             lines += _alignment(alignment)
+        rules = _load(model_dir / "failure_rules.json")
+        if rules:
+            lines += _failure_rules(rules)
     sections = [
         ("human_agreement.json", _human),
         ("signal_ablation.json", _ablation),

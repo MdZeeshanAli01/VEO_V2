@@ -78,6 +78,7 @@ def analyze_sample(
             "prediction_space": config.prediction_space,
         },
         "failure_rule": {"mode": config.region_mode, "delta_threshold": config.delta_threshold, "error_percentile": config.error_percentile},
+        "valid_pixels": int(valid_mask.sum()),
         "failure_pixel_fraction": float((failing & valid_mask).sum() / valid_mask.sum()),
         "num_regions": len(result_regions),
         "regions": result_regions,
