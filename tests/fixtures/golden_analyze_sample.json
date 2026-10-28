@@ -1,0 +1,74 @@
+{
+  "metrics": {
+    "mae": 0.37707,
+    "rmse": 0.55444,
+    "abs_rel": 0.08422,
+    "sq_rel": 0.0656,
+    "delta1": 0.89526,
+    "delta2": 0.98104,
+    "delta3": 1.0,
+    "spearman": 0.73741
+  },
+  "alignment": {
+    "scale": 0.32664,
+    "shift": -0.17036
+  },
+  "num_regions": 5,
+  "regions": [
+    {
+      "bbox": [
+        9,
+        0,
+        35,
+        29
+      ],
+      "area": 795,
+      "top_cause": "textureless",
+      "confidence": "High"
+    },
+    {
+      "bbox": [
+        93,
+        0,
+        6,
+        65
+      ],
+      "area": 265,
+      "top_cause": "ambiguous",
+      "confidence": "Low"
+    },
+    {
+      "bbox": [
+        46,
+        33,
+        3,
+        32
+      ],
+      "area": 66,
+      "top_cause": "ambiguous",
+      "confidence": "Low"
+    },
+    {
+      "bbox": [
+        79,
+        33,
+        3,
+        32
+      ],
+      "area": 65,
+      "top_cause": "ambiguous",
+      "confidence": "Low"
+    },
+    {
+      "bbox": [
+        51,
+        74,
+        27,
+        22
+      ],
+      "area": 459,
+      "top_cause": "ambiguous",
+      "confidence": "Low"
+    }
+  ]
+}
