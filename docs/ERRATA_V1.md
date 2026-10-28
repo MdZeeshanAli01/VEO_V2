@@ -15,7 +15,7 @@ Source files for every number below are in [`results/v1/`](../results/v1/).
 
 | v1 claim | Corrected statement |
 |---|---|
-| VEO vs. humans: $\kappa = 0.4719$, 58.6% accuracy, vs. a 14.3% random baseline | Over all 50 regions: $\kappa = 0.259$ (rater 1) and $0.138$ (rater 2), accuracy 36% (18/50), macro-F1 0.262. The 0.4719 / 58.6% figures are for the 29 regions where VEO did not abstain (21/50 abstained); the majority-class baseline on that subset is 41.4%. No script in the repository computes the 29-region figure. |
+| VEO vs. humans: $\kappa = 0.4719$, 58.6% accuracy, vs. a 14.3% random baseline | Over all 50 regions: $\kappa = 0.259$ (rater 1) and $0.138$ (rater 2), accuracy 36% (18/50), macro-F1 0.262. The 0.4719 / 58.6% figures are for the 29 regions where VEO did not abstain (21/50 abstained); the majority-class baseline on that subset is 41.4%. The v1 build hardcoded the 29-region figure; it is now computed by `experiments/human_agreement.py` (`results/v1/human_agreement.json`). |
 | High precision on geometric classes (87.5% / 71.4% / 71.4%) | Correct as ratios, but the counts are tiny: textureless 7/8, thin_object 5/7, boundary_mixing 5/7. Reflection was 0/7. VEO never predicted occlusion or poor_lighting. |
 | "Double-blind", "independent researchers", "randomly sampled" | Blinded (raters did not see VEO output); 2 raters; regions were taken at evenly spaced positions in the error-sorted list, then shuffled. |
 | Inverse-depth alignment "guarantees" / "proves" $s > 0$ | Observed $s > 0$ in 244/244 scenes. This is the expected result of fitting disparity in disparity space (standard since MiDaS), not a guarantee or a contribution. |

@@ -5,7 +5,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-14%2F14%20Passing-brightgreen.svg)]()
+[![CI](https://github.com/MdZeeshanAli01/VEO_V2/actions/workflows/ci.yml/badge.svg?branch=new-version)](https://github.com/MdZeeshanAli01/VEO_V2/actions/workflows/ci.yml)
 [![Dataset](https://img.shields.io/badge/Dataset-NYU%20Depth%20V2%20%7C%20Hypersim-blueviolet.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -69,114 +69,62 @@ All v1 results use 244 NYU Depth V2 images from a custom scene-disjoint test spl
 
 ```text
 VEO_V2/
-├── configs/                   # YAML configuration profiles
-│   ├── nyu.yaml               # NYU Depth V2 protocol & evaluation bounds
-│   └── hypersim.yaml          # Synthetic Hypersim metric benchmark config
-├── data/                      # Local datasets mount (excluded from git)
-│   └── nyu/splits/            # Deterministic scene-disjoint partitions (seed 42)
-├── docs/                      # Research documentation & protocol records
-│   ├── README.md              # Research documentation index
-│   ├── RESEARCH_PROTOCOL_V1.md# Frozen scientific protocol & claim boundaries
-│   ├── VEO_PROJECT_SPECIFICATION_LOCAL.md # Pipeline interfaces & contracts
-│   ├── VEO_PROJECT_INFO_AND_EVALUATOR_RESPONSE.md # Evaluator audit responses
-│   └── notes/                 # Theoretical & mathematical derivation notes
-├── figures/                   # 300-DPI publication figures
-│   ├── README.md              # Figure index & generation documentation
-│   ├── fig1_veo_architecture.png
-│   ├── fig2_polarity_and_fingerprints.png
-│   └── fig3_intervention_and_downstream.png
-├── notebooks/                 # Exploratory inspection notebooks
-│   ├── README.md
-│   └── VEO_v2_legacy.ipynb    # Prototype development notebook
-├── outputs/                   # Empirical evaluation records & JSON artifacts
-│   ├── nyu_final/test/        # Depth Anything V2 Small test results (5,236 regions)
-│   ├── second_model_dpt_hybrid_midas/test/ # DPT-MiDaS test results (3,689 regions)
-│   ├── alignment_ablation_full/ # 244-scene alignment ablation records
-│   └── rating_set_test_50/    # Blinded multi-rater human ratings & results
-├── results/v1/                # Committed v1 result summaries (JSON/CSV)
-├── scripts/                   # Standalone reproduction & evaluation scripts
-│   ├── README.md              # Script inventory & execution manual
-│   ├── generate_paper_figures.py        # Renders the 300-DPI figures
-│   ├── compute_human_agreement.py       # Computes multi-rater Cohen's kappa
-│   ├── run_signal_ablation.py           # Feature sensitivity ablation (5,236 regions)
-│   ├── run_faithfulness_intervention.py # Scoring-function sanity check (texture noise)
-│   └── run_downstream_improvement.py    # Oracle boundary refinement (uses GT errors)
-├── src/veo_nyu/               # Core modular Python library
-│   ├── cli.py                 # Command-line interface commands
-│   ├── config.py              # Configuration parsing & validation
-│   ├── inference.py           # Model adapter (Depth Anything V2, DPT)
-│   ├── metrics.py             # Scale-shift alignment & dense error maps
-│   ├── regions.py             # Connected-components segmentation
-│   ├── features.py            # 7 visual evidence feature extractors
-│   ├── scoring.py             # Rule-based scores & fixed-threshold ambiguity gate
-│   └── validation.py          # Multi-rater Cohen's kappa & ablation metrics
-├── tests/                     # Unit test suite (14/14 passing)
-│   └── test_core.py           # Test coverage for alignment, metrics, and rules
-├── pyproject.toml             # Python packaging & dependencies
-├── uv.lock                    # Deterministic dependency lockfile
-└── .gitignore                 # Clean repository ignore patterns
+├── src/veo/                # Library: alignment, regions, features, scoring, pipeline, CLI
+│   ├── reproduce.py        # `veo reproduce`: splits -> predictions -> analysis -> experiments -> summary
+│   ├── provenance.py       # git commit, config hash and package versions stamped on every result
+│   ├── summary.py          # renders results/<run>/SUMMARY.md from the result JSON files
+│   └── fixtures.py         # synthetic NYU-format dataset and predictor for offline end-to-end runs
+├── experiments/            # One script per reported result, each writing one JSON with provenance
+│   ├── human_agreement.py  # VEO vs. raters: all-region and selective metrics, majority baseline
+│   ├── signal_ablation.py  # labels changed when each feature is neutralised
+│   ├── scoring_sanity_check.py   # formula check: added texture lowers the textureless score
+│   └── oracle_boundary_filter.py # bilateral filtering in ground-truth-selected masks (oracle)
+├── results/                # Committed results; v1/ holds the original study's summaries
+├── configs/                # nyu.yaml, hypersim.yaml
+├── tests/                  # unit, behaviour, golden-output, pipeline and web-server tests
+├── scripts/                # generate_figures.py; site/ builds the web app, its data and video
+├── web_app/                # static explorer site + serve.py (deployed with the Dockerfile)
+├── figures/                # figures used by the README and the site
+├── docs/                   # protocol, specification, errata
+├── data/, outputs/         # local datasets and large run outputs (git-ignored)
+└── .github/workflows/      # CI: lint, tests, fixture reproduction
 ```
 
 ---
 
-## Quickstart & Environment Setup
+## Quickstart
 
-This project uses [`uv`](https://github.com/astral-sh/uv) for fast, fully deterministic virtual environment management.
+This project uses [`uv`](https://github.com/astral-sh/uv) for reproducible environments.
 
-### 1. Installation
-```powershell
-# Clone the repository
-git clone https://github.com/username/VEO_V2.git
+```bash
+git clone https://github.com/MdZeeshanAli01/VEO_V2.git
 cd VEO_V2
-
-# Synchronize dependencies with uv
-uv sync --extra dev --extra model
+uv sync --extra dev            # add --extra model for real depth models (PyTorch, transformers)
+uv run pytest -q               # unit, behaviour, golden and pipeline tests
+uv run veo reproduce --fixture --workdir /tmp/veo   # full pipeline on synthetic data, no downloads
 ```
 
-### 2. Verify Installation (Unit Tests)
-```powershell
-uv run pytest -v tests/
-# Output: 14 passed in ~12s
-```
+The fixture run writes `results/fixture/SUMMARY.md` under the work directory. CI runs the same three steps on every push.
 
 ---
 
-## End-to-End Reproduction Guide
+## Reproducing Results on NYU Depth V2
 
-Every empirical result, table, and figure in the paper can be reproduced with a single command:
-
-### 1. Generate Publication Figures (300 DPI)
-```powershell
-uv run python scripts/generate_paper_figures.py
-# Saves Fig 1, Fig 2, and Fig 3 into figures/
+```bash
+uv sync --extra dev --extra model
+uv run veo download-nyu                       # ~2.8 GB official labelled set -> data/nyu/; prints its SHA-256
+uv run veo reproduce --models depth-anything/Depth-Anything-V2-Small-hf Intel/dpt-hybrid-midas
 ```
 
-### 2. Run Feature Signal Sensitivity Ablation (Table VIII)
-```powershell
-uv run python scripts/run_signal_ablation.py
-# Evaluates 5,236 regions across 7 signals, writes outputs/nyu_final/test/signal_ablation.json
+This extracts the scene-disjoint test split, runs each model, compares alignment protocols, runs the signal ablation, scoring sanity check and oracle filter on the first model, and writes `results/nyu_test/SUMMARY.md`. Every result JSON records the git commit, configuration hash and package versions. Add `--rater1 <csv> --rater2 <csv>` to include a human-agreement study on a rating set exported with `veo prepare-rating`.
+
+The v1 human-agreement figures above can be recomputed from the stored confusion matrix:
+
+```bash
+uv run python experiments/human_agreement.py --from-confusion results/v1/human_validation_results.json
 ```
 
-### 3. Scoring-Function Sanity Check (Fig. 3a)
-```powershell
-uv run python scripts/run_faithfulness_intervention.py
-# Adds noise to scene_0049 region 8 and re-scores it (textureless 0.646 -> 0.000); checks the formula, not the model
-```
-
-### 4. Oracle Boundary Refinement (Table IX, Fig. 3b)
-```powershell
-uv run python scripts/run_downstream_improvement.py
-# Bilateral filtering in boundary_mixing regions selected with ground-truth error (oracle); 207 test scenes
-```
-
-### 5. Compute Human Agreement (Table VII)
-```powershell
-uv run python scripts/compute_human_agreement.py --rater1 <rater1.csv> --rater2 <rater2.csv>
-# Computes Cohen's kappa, per-class precision/recall/F1 over all 50 regions
-# Note: the rater CSVs are not committed yet, and the 29-region subset figure is not computed by this script
-```
-
-> Steps 2–5 read from `outputs/` and `data/`, which are not in the repository. A fresh clone cannot run them yet; making every result reproducible from a clean checkout is part of the v2 work.
+Raw rater CSVs and per-region v1 outputs are not in the repository, so the other v1 numbers can be re-derived only by re-running the pipeline.
 
 ---
 
