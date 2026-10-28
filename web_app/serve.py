@@ -3,7 +3,7 @@ Vision Error Observatory (VEO) - High-Performance Local HTTP Server
 Features:
 - Seamless byte-range support (HTTP 206 Partial Content) for smooth MP4 video playback & seeking
 - Comprehensive MIME type mapping (mp4, css, js, json, svg, pdf, woff2, ico)
-- Fallback route aliases for legacy links (/figures/*, /paper/* -> /assets/*)
+- Fallback route alias for legacy links (/figures/* -> /assets/*)
 - Automatic port fallback (8000 -> 8001 -> 8080) if port is in use
 - Zero external dependencies; runs on standard library
 """
@@ -72,7 +72,7 @@ class VEORequestHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Fallback aliases to prevent 404s on legacy or cached links
-        for prefix in ("/figures/", "/paper/"):
+        for prefix in ("/figures/",):
             if clean_path.startswith(prefix):
                 target = self.contained(DIRECTORY / "assets" / clean_path[len(prefix):])
                 if target is not None and target.is_file():

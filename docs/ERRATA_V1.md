@@ -2,7 +2,7 @@
 
 This file lists claims in the v1 documents, paper drafts, figures, web app and video that were wrong or overstated, and what replaces them. The pre-correction state is preserved at the git tag `v1-archive`. Where a v1 document disagrees with this file, this file is correct.
 
-Source files for every number below are in [`journal_paper/results/`](../journal_paper/results/).
+Source files for every number below are in [`results/v1/`](../results/v1/).
 
 ## Withdrawn
 
@@ -32,8 +32,8 @@ Source files for every number below are in [`journal_paper/results/`](../journal
 
 ## Files corrected in place
 
-`README.md`, `journal_paper/main_revised.tex`, `journal_paper/claims_and_evidence.md` (claim 1), both figure scripts and the regenerated figures, `scripts/generate_explainer_video.py` and `web_app/veo_explainer.mp4`.
+`README.md`, the figure script and regenerated figures, `scripts/generate_explainer_video.py` and `web_app/veo_explainer.mp4`. The paper manuscripts (`journal_paper/`, `paper/`) and all `.docx` files were later deleted from the repository; they remain available at the `v1-archive` tag.
 
 ## Files not corrected (read with this errata)
 
-All other Markdown documents carry a banner pointing here. Binary documents (`*.docx`, `*.pdf`, including the conference paper and `journal_paper/main_revised.pdf`) were **not** regenerated and still contain v1 claims.
+All other Markdown documents in `docs/`, `scripts/` and `figures/` carry a banner pointing here.

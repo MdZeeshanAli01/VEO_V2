@@ -11,7 +11,6 @@ This directory contains standalone, reproducible Python scripts that generate al
 | Script | Outputs Produced | Target Paper Table / Figure | Description |
 | :--- | :--- | :---: | :--- |
 | **`generate_paper_figures.py`** | `figures/fig1_veo_architecture.png`<br>`figures/fig2_polarity_and_fingerprints.png`<br>`figures/fig3_intervention_and_downstream.png` | **Fig. 1**<br>**Fig. 2**<br>**Fig. 3** | Renders 300-DPI high-resolution publication figures: Modular architecture diagram, scale polarity reversal & failure fingerprints, and faithfulness intervention & downstream refinement plots. |
-| **`build_final_word_paper.py`** | `paper/VEO_conference_paper.docx`<br>`VEO_conference_paper.docx`<br>`VEO_conference_paper_final.docx` | **Full Manuscript** (Tables I–IX, Figs 1–3) | Compiles the complete 10-section IEEE conference paper into `.docx` format with custom OpenXML bookmarks (`ref_1`–`ref_51`), clickable in-text citations, padded booktabs tables, and embedded 300-DPI figures. |
 | **`compute_human_agreement.py`** | `outputs/rating_set_test_50/human_validation_results.json` | **Table VII** | Ingests independent expert Excel annotations (`rating_1.csv.xlsx`, `rating_2.csv.xlsx`), parses multi-rater ratings across 50 failure regions, and computes inter-annotator & model-annotator Cohen's $\kappa$, raw percentage agreement, and per-class precision/recall/F1 metrics. |
 | **`run_signal_ablation.py`** | `outputs/nyu_final/test/signal_ablation.csv`<br>`outputs/nyu_final/test/signal_ablation.json` | **Table VIII** | Performs full feature-signal sensitivity ablation across all 5,236 held-out test failure regions by replacing each signal with neutral reference values and quantifying classification flip rates. |
 | **`run_faithfulness_intervention.py`** | `outputs/nyu_final/test/intervention_faithfulness.json` | **Section VI-C, Fig. 3a** | Executes controlled image-level counterfactual perturbations (synthetic high-frequency texture noise injection into `scene_0049` Region 8) to prove explanation faithfulness. |
@@ -51,6 +50,5 @@ uv run python scripts/run_downstream_improvement.py
 uv run python scripts/compute_human_agreement.py
 
 # 8. Compile the final IEEE Word conference paper
-uv run python scripts/build_final_word_paper.py
 ```
 

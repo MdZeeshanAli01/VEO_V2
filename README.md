@@ -7,7 +7,6 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Tests](https://img.shields.io/badge/Unit%20Tests-14%2F14%20Passing-brightgreen.svg)]()
 [![Dataset](https://img.shields.io/badge/Dataset-NYU%20Depth%20V2%20%7C%20Hypersim-blueviolet.svg)]()
-[![Paper](https://img.shields.io/badge/Paper-IEEE%20Format%20(5%2C020%20Words)-darkblue.svg)](paper/VEO_conference_paper.pdf)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -38,7 +37,7 @@ Monocular Depth Estimation (MDE) foundation models have reached impressive globa
 
 ## v1 Empirical Results
 
-All v1 results use 244 NYU Depth V2 images from a custom scene-disjoint test split (1,449 labeled samples partitioned with seed `42`; this is **not** the official NYU 654-image test split, so numbers are not directly comparable with published results). Result files are in [`journal_paper/results/`](journal_paper/results/).
+All v1 results use 244 NYU Depth V2 images from a custom scene-disjoint test split (1,449 labeled samples partitioned with seed `42`; this is **not** the official NYU 654-image test split, so numbers are not directly comparable with published results). Result files are in [`results/v1/`](results/v1/).
 
 1. **Alignment space (implementation note, not a contribution):**
    * Depth Anything V2 (relative) outputs inverse depth. Fitting it in depth space ($d = s \cdot p + b$) gives a negative scale ($s < 0$) in 244 / 244 test scenes, which is the expected consequence of fitting disparity to depth.
@@ -94,15 +93,10 @@ VEO_V2/
 │   ├── second_model_dpt_hybrid_midas/test/ # DPT-MiDaS test results (3,689 regions)
 │   ├── alignment_ablation_full/ # 244-scene alignment ablation records
 │   └── rating_set_test_50/    # Blinded multi-rater human ratings & results
-├── paper/                     # Publication manuscript package
-│   ├── README.md              # Paper specifications & formatting details
-│   ├── VEO_conference_paper.docx # IEEE Word manuscript (Times New Roman, 9 tables)
-│   ├── VEO_conference_paper.pdf  # Compiled PDF version of the manuscript
-│   └── archive/               # Historical draft backups
+├── results/v1/                # Committed v1 result summaries (JSON/CSV)
 ├── scripts/                   # Standalone reproduction & evaluation scripts
 │   ├── README.md              # Script inventory & execution manual
-│   ├── build_final_word_paper.py        # Compiles Word paper with active bookmarks
-│   ├── generate_paper_figures.py        # Renders all 300-DPI publication plots
+│   ├── generate_paper_figures.py        # Renders the 300-DPI figures
 │   ├── compute_human_agreement.py       # Computes multi-rater Cohen's kappa
 │   ├── run_signal_ablation.py           # Feature sensitivity ablation (5,236 regions)
 │   ├── run_faithfulness_intervention.py # Scoring-function sanity check (texture noise)
@@ -184,25 +178,18 @@ uv run python scripts/compute_human_agreement.py --rater1 <rater1.csv> --rater2 
 
 > Steps 2–5 read from `outputs/` and `data/`, which are not in the repository. A fresh clone cannot run them yet; making every result reproducible from a clean checkout is part of the v2 work.
 
-### 6. Compile the Final IEEE Conference Paper
-```powershell
-uv run python scripts/build_final_word_paper.py
-# Generates paper/VEO_conference_paper.docx with active citation bookmarks and 9 styled tables
-```
-
 ---
 
 ## Citation
 
-If you find the Vision Error Observatory (VEO) framework or empirical findings useful in your research, please cite:
+If you use the Vision Error Observatory (VEO) software, please cite the repository:
 
 ```bibtex
-@inproceedings{chakravorty2026veo,
-  title={Vision Error Observatory (VEO): A Model-Agnostic Diagnostic and Observability Framework for Failure Analysis in Monocular Depth Estimation},
+@software{chakravorty2026veo,
+  title={Vision Error Observatory (VEO): A Model-Agnostic Diagnostic Framework for Failure Analysis in Monocular Depth Estimation},
   author={Chakravorty, Anshuman and Ali, Zeeshan and Faraz, Omer},
-  booktitle={IEEE International Conference on Artificial Intelligence Trends and Pattern Recognition (ICAITPR)},
   year={2026},
-  address={Hyderabad, India}
+  url={https://github.com/MdZeeshanAli01/VEO_V2}
 }
 ```
 

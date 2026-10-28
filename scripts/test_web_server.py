@@ -20,7 +20,6 @@ def test_server():
         ("FontAwesome CSS", "http://localhost:8000/assets/fontawesome/all.min.css"),
         ("VEO Redesign Data JS", "http://localhost:8000/data/app_data_v2.js"),
         ("Architecture Poster", "http://localhost:8000/assets/fig1_veo_architecture.png"),
-        ("Conference Paper PDF", "http://localhost:8000/assets/VEO_conference_paper.pdf"),
     ]
     
     all_passed = True
