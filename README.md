@@ -83,7 +83,7 @@ VEO_V2/
 ├── configs/                # nyu.yaml, hypersim.yaml
 ├── tests/                  # unit, behaviour, golden-output, pipeline and web-server tests
 ├── scripts/                # generate_figures.py; site/ builds the web app, its data and video
-├── web_app/                # static explorer site + serve.py (deployed with the Dockerfile)
+├── web_app/                # static explorer site, serve.py, fetch_assets.py (deployed with the Dockerfile)
 ├── docs/                   # protocol, specification, errata
 ├── data/, outputs/         # local datasets and large run outputs (git-ignored)
 └── .github/workflows/      # CI: lint, tests, fixture reproduction
@@ -99,6 +99,7 @@ This project uses [`uv`](https://github.com/astral-sh/uv) for reproducible envir
 git clone https://github.com/MdZeeshanAli01/VEO_V2.git
 cd VEO_V2
 uv sync --extra dev            # add --extra model for real depth models (PyTorch, transformers)
+python web_app/fetch_assets.py # site video and scene data (GitHub release assets, checksum-verified)
 uv run pytest -q               # unit, behaviour, golden and pipeline tests
 uv run veo reproduce --fixture --workdir /tmp/veo   # full pipeline on synthetic data, no downloads
 ```
